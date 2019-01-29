@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+const INITIALTARGETBITS = 16
+
 // Block represents a block in the blockchain
 type Block struct {
 	Timestamp     int64
@@ -15,11 +17,12 @@ type Block struct {
 	Hash          []byte
 	Nonce         int
 	Height        int
+	TargetBits	  int
 }
 
 // NewBlock creates and returns Block
 func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int) *Block {
-	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0, height}
+	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0, height, INITIALTARGETBITS}
 	pow := NewProofOfWork(block)
 	nonce, hash := pow.Run()
 
