@@ -15,16 +15,19 @@ var (
 // ProofOfWork represents a proof-of-work
 type ProofOfWork struct {
 	block  *Block
-	target *big.Int
+	blockTarget *big.Int
+	blockchainTarget *big.Int
 }
 
 // NewProofOfWork builds and returns a ProofOfWork
-func NewProofOfWork(b *Block) *ProofOfWork {
-	targetBits := b.TargetBits
-	target := big.NewInt(1)
-	target.Lsh(target, uint(256-targetBits))
+func NewProofOfWork(b *Block, blockchainTargetBits int) *ProofOfWork {
+	blockTargetBits := b.TargetBits
+	blockTarget := big.NewInt(1)
+	blockTarget.Lsh(blockTarget, uint(256 - blockTargetBits))
 
-	pow := &ProofOfWork{b, target}
+	blockchainTarget := big.NewInt(1)
+	blockchainTarget.Lsh(blockchainTarget, uint(256 - blockchainTargetBits))
+	pow := &ProofOfWork{b, blockTarget, blockchainTarget}
 
 	return pow
 }
@@ -60,7 +63,7 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 		}
 		hashInt.SetBytes(hash[:])
 
-		if hashInt.Cmp(pow.target) == -1 {
+		if hashInt.Cmp(pow.blockTarget) == -1 {
 			break
 		} else {
 			nonce++
@@ -73,13 +76,17 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 
 // Validate validates block's PoW
 func (pow *ProofOfWork) Validate() bool {
+	//check that the targetBits is correct
+	if pow.blockchainTarget.Cmp(pow.blockTarget) != 0 {
+		return false
+	}
 	var hashInt big.Int
 
 	data := pow.prepareData(pow.block.Nonce)
 	hash := sha256.Sum256(data)
 	hashInt.SetBytes(hash[:])
 
-	isValid := hashInt.Cmp(pow.target) == -1
+	isValid := hashInt.Cmp(pow.blockTarget) == -1
 
 	return isValid
 }

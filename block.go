@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-const INITIALTARGETBITS = 16
+
 
 // Block represents a block in the blockchain
 type Block struct {
@@ -21,20 +21,15 @@ type Block struct {
 }
 
 // NewBlock creates and returns Block
-func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int) *Block {
-	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0, height, INITIALTARGETBITS}
-	pow := NewProofOfWork(block)
-	nonce, hash := pow.Run()
-
-	block.Hash = hash[:]
-	block.Nonce = nonce
-
+func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int, targetBits int) *Block {
+	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0, height, targetBits}
+	
 	return block
 }
 
 // NewGenesisBlock creates and returns genesis Block
 func NewGenesisBlock(coinbase *Transaction) *Block {
-	return NewBlock([]*Transaction{coinbase}, []byte{}, 0)
+	return NewBlock([]*Transaction{coinbase}, []byte{}, 0, initialTargetBits)
 }
 
 // HashTransactions returns a hash of the transactions in the block

@@ -7,7 +7,7 @@ import (
 	"os"
 	"bufio"
 	"strconv"
-	"github.com/joho/godotenv"
+	//"github.com/joho/godotenv"
 )
 
 // CLI responsible for processing command line arguments
@@ -18,6 +18,7 @@ func (cli *CLI) printUsage() {
 	fmt.Println("  createblockchain ADDRESS - Create a blockchain and send genesis block reward to ADDRESS")
 	fmt.Println("  createwallet - Generates a new key-pair and saves it into the wallet file")
 	fmt.Println("  getbalance ADDRESS - Get balance of ADDRESS")
+	fmt.Println("  getbalances - Get balances of all addresses")
 	fmt.Println("  listaddresses - Lists all addresses from the wallet file")
 	fmt.Println("  printchain - Print all the blocks of the blockchain")
 	fmt.Println("  reindexutxo - Rebuilds the UTXO set")
@@ -35,10 +36,10 @@ func (cli *CLI) validateArgs() {
 // Run parses command line arguments and processes commands
 func (cli *CLI) Run() {
 	//cli.validateArgs()
-	err := godotenv.Load()
-	if err != nil {
-		log.Fatal(err)
-	}
+	// err := godotenv.Load()
+	// if err != nil {
+	// 	log.Fatal(err)
+	// }
 	nodeID := os.Getenv("NODE_ID")
 	if nodeID == "" {
 		fmt.Printf("NODE_ID env. var is not set!")
@@ -68,6 +69,8 @@ func (cli *CLI) Run() {
 				cli.listAddresses(nodeID)
 			case "reindexutxo":
 				cli.reindexUTXO(nodeID)
+			case "getbalances":
+				cli.getAllBalances(nodeID)
 			case "getbalance":
 				if len(commands) > 1 {
 					address := commands[1]
@@ -81,7 +84,7 @@ func (cli *CLI) Run() {
 					sendFrom := commands[1]
 					sendTo   := commands[2]
 					sendAmount,_ := strconv.Atoi(commands[3])
-					sendMine := false
+					sendMine := true
 					cli.send(sendFrom, sendTo, sendAmount, nodeID, sendMine)
 				 } else {
 				 	fmt.Println("send FROM TO AMOUNT - Send AMOUNT of coins from FROM address to TO.")
@@ -96,6 +99,17 @@ func (cli *CLI) Run() {
 				 	fmt.Println("createblockchain ADDRESS - Create a blockchain and send genesis block reward to ADDRESS")
 				 	fmt.Println("Missing argument ADDRESS")
 				 }
+			case "startnode":
+				if len(commands) > 1 {
+					address := commands[1]
+					cli.startNode(nodeID, address)
+				 } else {
+				 	fmt.Println("startnode ADDRESS - ")
+				 	fmt.Println("Missing argument ADDRESS")
+				 }
+			
+
+
 			default:
 				cli.printUsage()
 

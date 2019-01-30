@@ -15,7 +15,10 @@ import (
 const dbFile = "blockchain_%s.db"
 const blocksBucket = "blocks"
 const genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-
+const blocksPerTargetUpdate = 64
+const initialTargetBits = 16
+const targetBlocksPerMinute = 6
+const secondsPerMinute = 60
 // Blockchain implements interactions with a DB
 type Blockchain struct {
 	tip []byte
@@ -27,36 +30,40 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 	dbFile := fmt.Sprintf(dbFile, nodeID)
 	if dbExists(dbFile) {
 		fmt.Println("Blockchain already exists.")
-		os.Exit(1)
+		bc := NewBlockchain(nodeID)
+		return bc
+
+		//os.Exit(1)
 	}
 
 	var tip []byte
 
 	cbtx := NewCoinbaseTX(address, genesisCoinbaseData)
 	genesis := NewGenesisBlock(cbtx)
-
+	pow := NewProofOfWork(genesis, initialTargetBits)
+	nonce, hash := pow.Run()
+	genesis.Hash = hash[:]
+	genesis.Nonce = nonce
+	
 	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
 		log.Panic(err)
 	}
-
+	
 	err = db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucket([]byte(blocksBucket))
 		if err != nil {
 			log.Panic(err)
 		}
-
 		err = b.Put(genesis.Hash, genesis.Serialize())
 		if err != nil {
 			log.Panic(err)
 		}
-
 		err = b.Put([]byte("l"), genesis.Hash)
 		if err != nil {
 			log.Panic(err)
 		}
 		tip = genesis.Hash
-
 		return nil
 	})
 	if err != nil {
@@ -265,6 +272,37 @@ func (bc *Blockchain) GetBlockHashes() [][]byte {
 	return blocks
 }
 
+//Calculate the new target bits
+func (bc *Blockchain) CalculateTargetBits(height int) int {
+	bci := bc.Iterator()
+	if height%blocksPerTargetUpdate == 0 {
+		//update targetBits
+		t := int64(0)
+		for {
+			block := bci.Next()
+			t += block.Timestamp
+			if block.Height % blocksPerTargetUpdate == 0 {
+				prevTarget := block.TargetBits
+				break
+			}
+		}
+		timeTarget := secondsPerMinute * blocksPerTargetUpdate / targetBlocksPerMinute
+		newTarget := prevTarget * t / timeTarget
+	} else {
+			//return targetBits from previous block
+			for {
+				block := bci.Next()
+				if block.Height == height - 1 {
+					newTarget := block.TargetBits
+					break
+				}
+			}
+			
+		}
+	fmt.Printf("New target bits = %d", newTarget)
+	return newTarget
+}
+
 // MineBlock mines a new block with the provided transactions
 func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
 	var lastHash []byte
@@ -292,7 +330,15 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
 		log.Panic(err)
 	}
 
-	newBlock := NewBlock(transactions, lastHash, lastHeight+1)
+	newTargetBits := bc.CalculateTargetBits(lastHeight+1)
+	newBlock := NewBlock(transactions, lastHash, lastHeight+1, newTargetBits)
+
+	blockchainTargetBits := bc.CalculateTargetBits(newBlock.Height)
+	pow := NewProofOfWork(newBlock, blockchainTargetBits)
+	nonce, hash := pow.Run()
+
+	newBlock.Hash = hash[:]
+	newBlock.Nonce = nonce
 
 	err = bc.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))

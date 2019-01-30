@@ -18,7 +18,8 @@ func (cli *CLI) printChain(nodeID string) {
 		fmt.Printf("Height: %d\n", block.Height)
 		fmt.Printf("Prev. block: %x\n", block.PrevBlockHash)
 		fmt.Printf("Target bits: %x\n", block.TargetBits)
-		pow := NewProofOfWork(block)
+		blockchainTargetBits := bc.CalculateTargetBits(block.Height)
+		pow := NewProofOfWork(block, blockchainTargetBits)
 		fmt.Printf("PoW: %s\n\n", strconv.FormatBool(pow.Validate()))
 		for _, tx := range block.Transactions {
 			fmt.Println(tx)
