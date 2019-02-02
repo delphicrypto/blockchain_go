@@ -21,9 +21,12 @@ func (cli *CLI) printUsage() {
 	fmt.Println("  getbalances - Get balances of all addresses")
 	fmt.Println("  listaddresses - Lists all addresses from the wallet file")
 	fmt.Println("  printchain - Print all the blocks of the blockchain")
+	fmt.Println("  printlast - Print last block of the blockchain")
 	fmt.Println("  reindexutxo - Rebuilds the UTXO set")
 	fmt.Println("  send FROM TO AMOUNT - Send AMOUNT of coins from FROM address to TO.")
 	fmt.Println("  startnode -miner ADDRESS - Start a node with ID specified in NODE_ID env. var. -miner enables mining")
+	fmt.Println("  mineblock N- Mine N blocks with empty transactions. Default is 1")
+	
 }
 
 func (cli *CLI) validateArgs() {
@@ -61,6 +64,8 @@ func (cli *CLI) Run() {
 		switch command {
 			case "printchain":
 				cli.printChain(nodeID)
+			case "printlast":
+				cli.printLast(nodeID)
 			case "q", "quit":
 				os.Exit(1)
 			case "createwallet":
@@ -71,6 +76,9 @@ func (cli *CLI) Run() {
 				cli.reindexUTXO(nodeID)
 			case "getbalances":
 				cli.getAllBalances(nodeID)
+			case "getdiff":
+				cli.getDifficulty(nodeID)
+				
 			case "getbalance":
 				if len(commands) > 1 {
 					address := commands[1]
@@ -107,10 +115,23 @@ func (cli *CLI) Run() {
 				 	fmt.Println("startnode ADDRESS - ")
 				 	fmt.Println("Missing argument ADDRESS")
 				 }
-			
-
-
+			case "mineblock":
+				n := 1
+				if len(commands) > 1 {
+					m, err := strconv.Atoi(commands[1])
+					if err != nil {
+						fmt.Println("Invalid N argument.")
+						fmt.Println("  mineblock N- Mine N blocks with empty transactions. Default is 1")
+					} else {
+						n = m
+					}
+				}
+				for i := 0; i < n; i++ {
+					cli.mineblock(nodeID)
+				}
+				
 			default:
+				fmt.Println("Invalid option.")
 				cli.printUsage()
 
 		}

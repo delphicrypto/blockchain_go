@@ -19,7 +19,6 @@ type MerkleNode struct {
 // NewMerkleTree creates a new Merkle tree from a sequence of data
 func NewMerkleTree(data [][]byte) *MerkleTree {
 	var nodes []MerkleNode
-
 	if len(data)%2 != 0 {
 		data = append(data, data[len(data)-1])
 	}

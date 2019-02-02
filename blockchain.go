@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"log"
 	"os"
-
+	"math/big"
 	"github.com/boltdb/bolt"
 )
 
@@ -19,6 +19,7 @@ const blocksPerTargetUpdate = 64
 const initialTargetBits = 16
 const targetBlocksPerMinute = 6
 const secondsPerMinute = 60
+const maxTargetChange = 4
 // Blockchain implements interactions with a DB
 type Blockchain struct {
 	tip []byte
@@ -40,7 +41,7 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 
 	cbtx := NewCoinbaseTX(address, genesisCoinbaseData)
 	genesis := NewGenesisBlock(cbtx)
-	pow := NewProofOfWork(genesis, initialTargetBits)
+	pow := NewProofOfWork(genesis)
 	nonce, hash := pow.Run()
 	genesis.Hash = hash[:]
 	genesis.Nonce = nonce
@@ -273,34 +274,54 @@ func (bc *Blockchain) GetBlockHashes() [][]byte {
 }
 
 //Calculate the new target bits
-func (bc *Blockchain) CalculateTargetBits(height int) int {
-	bci := bc.Iterator()
-	if height%blocksPerTargetUpdate == 0 {
-		//update targetBits
-		t := int64(0)
-		for {
-			block := bci.Next()
-			t += block.Timestamp
-			if block.Height % blocksPerTargetUpdate == 0 {
-				prevTarget := block.TargetBits
-				break
-			}
-		}
-		timeTarget := secondsPerMinute * blocksPerTargetUpdate / targetBlocksPerMinute
-		newTarget := prevTarget * t / timeTarget
-	} else {
-			//return targetBits from previous block
-			for {
-				block := bci.Next()
-				if block.Height == height - 1 {
-					newTarget := block.TargetBits
-					break
-				}
-			}
-			
-		}
-	fmt.Printf("New target bits = %d", newTarget)
+func (bc *Blockchain) CalculateTarget(height int) *big.Int {
+	var prevTarget *big.Int
+	var newTarget *big.Int
+	
+	if height == 0 {
+		initialTarget := targetFromTargetBits(initialTargetBits)
+		return initialTarget
+	}
+
+	hashes := bc.GetBlockHashes()
+	total := len(hashes)
+	index := ((height-1)/blocksPerTargetUpdate) * blocksPerTargetUpdate //this return only integer part of ratio since i'm divindg two integers
+	baseBlock, _ := bc.GetBlock(hashes[total -1 - index])//this block is the first block in the batch of blocks we need to calculate difficulty
+
+	if height%blocksPerTargetUpdate != 0 {
+		return baseBlock.Target
+	}
+	
+	lastBlock, _ := bc.GetBlock(hashes[total - 1 - (blocksPerTargetUpdate + index - 1)])//this block is the last block in the batch of blocks we need to calculate difficulty
+	t := baseBlock.Timestamp - lastBlock.Timestamp
+	prevTarget = baseBlock.Target
+	timeTarget := secondsPerMinute * blocksPerTargetUpdate / targetBlocksPerMinute
+	retarget := new(big.Float).SetFloat64(float64(t) / float64(timeTarget))
+	floatTarget := new(big.Float).SetInt(prevTarget)
+	floatNewTarget := new(big.Float).Mul(floatTarget, retarget)
+	result := new(big.Int) 
+	floatNewTarget.Int(result)
+	newTarget = result
+	maxChange := big.NewInt(maxTargetChange)
+	maxTarget := new(big.Int).Mul(prevTarget, maxChange)
+	minTarget := new(big.Int).Div(prevTarget, maxChange)
+	if newTarget.Cmp(maxTarget) == 1 {
+		newTarget = maxTarget
+	} else if newTarget.Cmp(minTarget) == -1 {
+		newTarget = minTarget
+	}
+	
 	return newTarget
+
+			
+}
+
+//Calculate the new target bits
+func (bc *Blockchain) CurrentTarget() *big.Int {
+	bci := bc.Iterator()
+	block := bci.Next()
+	height := block.Height + 1
+	return bc.CalculateTarget(height)
 }
 
 // MineBlock mines a new block with the provided transactions
@@ -330,11 +351,10 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
 		log.Panic(err)
 	}
 
-	newTargetBits := bc.CalculateTargetBits(lastHeight+1)
-	newBlock := NewBlock(transactions, lastHash, lastHeight+1, newTargetBits)
+	newTarget := bc.CalculateTarget(lastHeight+1)
+	newBlock := NewBlock(transactions, lastHash, lastHeight+1, newTarget)
 
-	blockchainTargetBits := bc.CalculateTargetBits(newBlock.Height)
-	pow := NewProofOfWork(newBlock, blockchainTargetBits)
+	pow := NewProofOfWork(newBlock)
 	nonce, hash := pow.Run()
 
 	newBlock.Hash = hash[:]

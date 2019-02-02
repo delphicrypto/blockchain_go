@@ -5,6 +5,7 @@ import (
 	"encoding/gob"
 	"log"
 	"time"
+	"math/big"
 )
 
 
@@ -17,19 +18,20 @@ type Block struct {
 	Hash          []byte
 	Nonce         int
 	Height        int
-	TargetBits	  int
+	Target	  	  *big.Int
 }
 
 // NewBlock creates and returns Block
-func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int, targetBits int) *Block {
-	block := &Block{time.Now().Unix(), transactions, prevBlockHash, []byte{}, 0, height, targetBits}
+func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int, target *big.Int) *Block {
+	block := &Block{time.Now().UnixNano(), transactions, prevBlockHash, []byte{}, 0, height, target}
 	
 	return block
 }
 
 // NewGenesisBlock creates and returns genesis Block
 func NewGenesisBlock(coinbase *Transaction) *Block {
-	return NewBlock([]*Transaction{coinbase}, []byte{}, 0, initialTargetBits)
+	target := targetFromTargetBits(initialTargetBits)
+	return NewBlock([]*Transaction{coinbase}, []byte{}, 0, target)
 }
 
 // HashTransactions returns a hash of the transactions in the block
@@ -57,6 +59,16 @@ func (b *Block) Serialize() []byte {
 	return result.Bytes()
 }
 
+func (b *Block) Validate(chainTarget *big.Int) bool {
+
+//check that the targetBits is correct
+	if b.Target.Cmp(chainTarget) != 0 {
+		return false
+	}
+	pow := NewProofOfWork(b)
+	return pow.Validate()
+}
+
 // DeserializeBlock deserializes a block
 func DeserializeBlock(d []byte) *Block {
 	var block Block
@@ -69,3 +81,4 @@ func DeserializeBlock(d []byte) *Block {
 
 	return &block
 }
+

@@ -10,19 +10,24 @@ func (cli *CLI) printChain(nodeID string) {
 	defer bc.db.Close()
 
 	bci := bc.Iterator()
-
 	for {
 		block := bci.Next()
-
-		fmt.Printf("============ Block %x ============\n", block.Hash)
-		fmt.Printf("Height: %d\n", block.Height)
-		fmt.Printf("Prev. block: %x\n", block.PrevBlockHash)
-		fmt.Printf("Target bits: %x\n", block.TargetBits)
-		blockchainTargetBits := bc.CalculateTargetBits(block.Height)
-		pow := NewProofOfWork(block, blockchainTargetBits)
-		fmt.Printf("PoW: %s\n\n", strconv.FormatBool(pow.Validate()))
+		printGreen(fmt.Sprintf("============ Block %d ============\n", block.Height))
+		printBlue(fmt.Sprintf("Hash: %x\n", block.Hash))
+		fmt.Printf("Prev: %x\n", block.PrevBlockHash)
+		fmt.Printf("Block target: %d\n", block.Target)
+		blockchainTarget := bc.CalculateTarget(block.Height)
+		fmt.Printf("Chain target: %d\n", blockchainTarget)
+		fmt.Printf("Difficulty: %d\n", targetToDifficulty(block.Target))
+		fmt.Printf("Time: %d\n", block.Timestamp)
+		validBlock := block.Validate(blockchainTarget)
+		if validBlock {
+			printGreen(fmt.Sprintf("PoW: %s\n\n", strconv.FormatBool(validBlock)))
+		} else {
+			printRed(fmt.Sprintf("PoW: %s\n\n", strconv.FormatBool(validBlock)))
+		}
 		for _, tx := range block.Transactions {
-			fmt.Println(tx)
+			printYellow(fmt.Sprintln(tx))
 		}
 		fmt.Printf("\n\n")
 
