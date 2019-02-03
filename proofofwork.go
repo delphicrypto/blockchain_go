@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"encoding/binary"
 )
 
 var (
@@ -30,6 +31,13 @@ func (pow *ProofOfWork) prepareData(nonce int) []byte {
 	if len(pow.block.Transactions) > 0 {
 		hashedTxs = pow.block.HashTransactions()
 	}
+	byteSolution := []byte{}
+	if len(pow.block.Solution) > 0 {
+		for _, i := range pow.block.Solution {
+    		binary.LittleEndian.PutUint32(byteSolution, uint32(i))
+		}
+	}
+	//fmt.Printf("%x\n", byteSolution)
 	data := bytes.Join(
 		[][]byte{
 			pow.block.PrevBlockHash,
@@ -37,6 +45,9 @@ func (pow *ProofOfWork) prepareData(nonce int) []byte {
 			IntToHex(pow.block.Timestamp),
 			[]byte(fmt.Sprintf("%x",pow.block.Target)),
 			IntToHex(int64(nonce)),
+			pow.block.SolutionHash,
+			byteSolution,
+			pow.block.ProblemGraphHash,
 		},
 		[]byte{},
 	)

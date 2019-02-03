@@ -279,7 +279,7 @@ func handleGetData(request []byte, bc *Blockchain) {
 	}
 
 	if payload.Type == "block" {
-		block, err := bc.GetBlock([]byte(payload.ID))
+		block, err := bc.GetBlockFromHash([]byte(payload.ID))
 		if err != nil {
 			return
 		}
@@ -337,7 +337,7 @@ func handleTx(request []byte, bc *Blockchain) {
 			cbTx := NewCoinbaseTX(miningAddress, "")
 			txs = append(txs, cbTx)
 
-			newBlock := bc.MineBlock(txs)
+			newBlock := bc.MineBlock(txs, []byte{}, []int{}, []byte{})
 			UTXOSet := UTXOSet{bc}
 			UTXOSet.Reindex()
 

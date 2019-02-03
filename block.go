@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"encoding/gob"
 	"log"
+	"fmt"
+	"strconv"
 	"time"
 	"math/big"
 )
@@ -19,11 +21,14 @@ type Block struct {
 	Nonce         int
 	Height        int
 	Target	  	  *big.Int
+	SolutionHash []byte
+	Solution	  []int
+	ProblemGraphHash []byte
 }
 
 // NewBlock creates and returns Block
-func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int, target *big.Int) *Block {
-	block := &Block{time.Now().UnixNano(), transactions, prevBlockHash, []byte{}, 0, height, target}
+func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int, target *big.Int, solHash []byte, solution []int, pgHash []byte) *Block {
+	block := &Block{time.Now().UnixNano(), transactions, prevBlockHash, []byte{}, 0, height, target, solHash, solution, pgHash}
 	
 	return block
 }
@@ -31,7 +36,7 @@ func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int, tar
 // NewGenesisBlock creates and returns genesis Block
 func NewGenesisBlock(coinbase *Transaction) *Block {
 	target := targetFromTargetBits(initialTargetBits)
-	return NewBlock([]*Transaction{coinbase}, []byte{}, 0, target)
+	return NewBlock([]*Transaction{coinbase}, []byte{}, 0, target, []byte{}, []int{}, []byte{})
 }
 
 // HashTransactions returns a hash of the transactions in the block
@@ -67,6 +72,47 @@ func (b *Block) Validate(chainTarget *big.Int) bool {
 	}
 	pow := NewProofOfWork(b)
 	return pow.Validate()
+}
+
+//NicePrint print nicely the block properties
+func (b *Block) NicePrint(bc *Blockchain) {
+	fmt.Printf("\n")
+	printGreen(fmt.Sprintf("============ Block %d ============\n", b.Height))
+	printBlue(fmt.Sprintf("Hash: %x\n", b.Hash))
+	fmt.Printf("Prev: %x\n", b.PrevBlockHash)
+	fmt.Printf("Difficulty: %d\n", targetToDifficulty(b.Target))
+	prevBlock, _ := bc.GetBlockFromHash(b.PrevBlockHash)
+	time := (b.Timestamp - prevBlock.Timestamp) / 1e9
+	fmt.Printf("Time: %d seconds\n", time)
+	blockchainTarget := bc.CalculateTarget(b.Height)
+	validBlock := b.Validate(blockchainTarget)
+	if validBlock {
+		printGreen(fmt.Sprintf("PoW: %s\n", strconv.FormatBool(validBlock)))
+	} else {
+		printRed(fmt.Sprintf("PoW: %s\n", strconv.FormatBool(validBlock)))
+	}
+
+	if len(b.SolutionHash) > 0 {
+		printGreen(fmt.Sprintf("Solution to %x: %s\n", b.SolutionHash, b.Solution))
+	} else {
+		printRed("No solution\n")
+	}
+
+	if len(b.ProblemGraphHash) > 0 {
+		printGreen(fmt.Sprintf("New Problem %x: \n", b.ProblemGraphHash))
+		// pg, err := bc.GetProblemGraphFromHash(b.ProblemGraphHash)
+		// if err == nil {
+		// 	pg.NicePrint()
+		// }
+		
+	} else {
+		printRed("No problem ;)\n")
+	}
+
+	for _, tx := range b.Transactions {
+		printYellow(fmt.Sprintln(tx))
+	}
+	fmt.Printf("\n")
 }
 
 // DeserializeBlock deserializes a block

@@ -6,15 +6,12 @@ import (
 	"encoding/gob"
 	"crypto/sha256"
 	"bytes"
+	"strconv"
 	"encoding/json"
 	"github.com/soniakeys/graph"
 	"github.com/soniakeys/bits"
 	//"github.com/boltdb/bolt"
 )
-
-
-const problemBucket = "graph"
-const problemsdbFile = "problems.db"
 
 
 type ProblemGraph struct {
@@ -75,6 +72,21 @@ func (pg *ProblemGraph) GetHash() []byte {
 	return hash[:]
 }
 
+//NicePrint print nicely the graph properties
+func (pg *ProblemGraph) NicePrint() {
+	fmt.Printf("\n")
+	printBlue(fmt.Sprintf("Hash: %x\n",pg.Hash))
+	for fr, to := range pg.Graph.AdjacencyList {
+    	fmt.Println(fr, to)
+	}
+	// clique := pg.FindClique()
+	// printGreen(fmt.Sprintf("Clique: %s\n", strconv.FormatBool(clique)))
+	connected := pg.Graph.IsConnected()
+	printGreen(fmt.Sprintf("Connected: %s\n", strconv.FormatBool(connected)))
+
+	fmt.Printf("\n")
+}
+
 // Serialize serializes the graph
 func (pg *ProblemGraph) Serialize() []byte {
 	var result bytes.Buffer
@@ -88,8 +100,8 @@ func (pg *ProblemGraph) Serialize() []byte {
 	return result.Bytes()
 }
 
-// DeserializeBlock deserializes a graph
-func DeserializeGraph(d []byte) *ProblemGraph {
+// DeserializeProblemGraph deserializes a problemgraph
+func DeserializeProblemGraph(d []byte) *ProblemGraph {
 	var g ProblemGraph
 
 	decoder := gob.NewDecoder(bytes.NewReader(d))
@@ -101,70 +113,3 @@ func DeserializeGraph(d []byte) *ProblemGraph {
 	return &g
 }
 
-// // CreateBlockchain creates a new blockchain DB
-// func CreateGraph(address) *graph.Undirected {
-// 	if dbExists(problemsdbFile) {
-// 		fmt.Println("Problems file already exists.")
-// 		g := NewBlockchain(nodeID)
-// 		return bc
-// 	}
-	
-// 	db, err := bolt.Open(problemsdbFile, 0600, nil)
-// 	if err != nil {
-// 		log.Panic(err)
-// 	}
-	
-// 	err = db.Update(func(tx *bolt.Tx) error {
-// 		b, err := tx.CreateBucket([]byte(problemBucket))
-// 		if err != nil {
-// 			log.Panic(err)
-// 		}
-// 		err = b.Put(genesis.Hash, genesis.Serialize())
-// 		if err != nil {
-// 			log.Panic(err)
-// 		}
-// 		err = b.Put([]byte("l"), genesis.Hash)
-// 		if err != nil {
-// 			log.Panic(err)
-// 		}
-// 		tip = genesis.Hash
-// 		return nil
-// 	})
-// 	if err != nil {
-// 		log.Panic(err)
-// 	}
-
-// 	bc := Blockchain{tip, db}
-
-// 	return &bc
-// }
-
-
-// // NewBlockchain creates a new Blockchain with genesis Block
-// func OpenProblemset(nodeID string) *Blockchain {
-// 	dbFile := fmt.Sprintf(dbFile, nodeID)
-// 	if dbExists(dbFile) == false {
-// 		fmt.Println("No existing blockchain found. Create one first.")
-// 		os.Exit(1)
-// 	}
-
-// 	var tip []byte
-// 	db, err := bolt.Open(dbFile, 0600, nil)
-// 	if err != nil {
-// 		log.Panic(err)
-// 	}
-
-// 	err = db.Update(func(tx *bolt.Tx) error {
-// 		b := tx.Bucket([]byte(blocksBucket))
-// 		tip = b.Get([]byte("l"))
-
-// 		return nil
-// 	})
-// 	if err != nil {
-// 		log.Panic(err)
-// 	}
-
-// 	bc := Blockchain{tip, db}
-
-// 	return &bc
-// }

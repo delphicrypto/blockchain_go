@@ -14,6 +14,7 @@ import (
 
 const dbFile = "blockchain_%s.db"
 const blocksBucket = "blocks"
+const problemsBucket = "problems"
 const genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
 const blocksPerTargetUpdate = 64
 const initialTargetBits = 16
@@ -65,6 +66,17 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 			log.Panic(err)
 		}
 		tip = genesis.Hash
+		return nil
+	})
+	if err != nil {
+		log.Panic(err)
+	}
+
+	err = db.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucket([]byte(problemsBucket))
+		if err != nil {
+			log.Panic(err)
+		}
 		return nil
 	})
 	if err != nil {
@@ -231,10 +243,39 @@ func (bc *Blockchain) GetBestHeight() int {
 	return lastBlock.Height
 }
 
-// GetBlock finds a block by its hash and returns it
-func (bc *Blockchain) GetBlock(blockHash []byte) (Block, error) {
+// GetBlockFromHash finds a block by its hash and returns it
+func (bc *Blockchain) GetBlockFromHash(blockHash []byte) (Block, error) {
 	var block Block
 
+	err := bc.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(blocksBucket))
+
+		blockData := b.Get(blockHash)
+
+		if blockData == nil {
+			return errors.New("Block is not found.")
+		}
+
+		block = *DeserializeBlock(blockData)
+
+		return nil
+	})
+	if err != nil {
+		return block, err
+	}
+
+	return block, nil
+}
+
+// GetBlockFromHeight finds a block by its height and returns it
+func (bc *Blockchain) GetBlockFromHeight(height int) (Block, error) {
+	var block Block
+
+	hashes := bc.GetBlockHashes()
+	if height > len(hashes) - 1 {
+		return block, errors.New("Block is not found.")
+	}
+	blockHash := hashes[len(hashes) - 1 - height]
 	err := bc.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 
@@ -273,12 +314,54 @@ func (bc *Blockchain) GetBlockHashes() [][]byte {
 	return blocks
 }
 
+// GetProlemGraphFromHash finds a Problemgraph by its hash and returns it
+func (bc *Blockchain) GetProblemGraphFromHash(pgHash []byte) (ProblemGraph, error) {
+	var pg ProblemGraph
+
+	err := bc.db.View(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(problemsBucket))
+
+		pgData := b.Get(pgHash)
+
+		if pgData == nil {
+			return errors.New("Problem is not found.")
+		}
+
+		pg = *DeserializeProblemGraph(pgData)
+
+		return nil
+	})
+	if err != nil {
+		return pg, err
+	}
+
+	return pg, nil
+}
+
+// GetProblemGraphHashes returns a list of hashes of all the problems in the chain
+func (bc *Blockchain) GetProblemGraphHashes() [][]byte {
+	var problems [][]byte
+	bci := bc.Iterator()
+
+	for {
+		block := bci.Next()
+		if len(block.ProblemGraphHash) > 0 {
+			problems = append(problems, block.ProblemGraphHash)
+		}
+
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+
+	return problems
+}
+
 //Calculate the new target bits
 func (bc *Blockchain) CalculateTarget(height int) *big.Int {
 	var prevTarget *big.Int
 	var newTarget *big.Int
-	
-	if height == 0 {
+	if height < blocksPerTargetUpdate {
 		initialTarget := targetFromTargetBits(initialTargetBits)
 		return initialTarget
 	}
@@ -286,13 +369,13 @@ func (bc *Blockchain) CalculateTarget(height int) *big.Int {
 	hashes := bc.GetBlockHashes()
 	total := len(hashes)
 	index := ((height-1)/blocksPerTargetUpdate) * blocksPerTargetUpdate //this return only integer part of ratio since i'm divindg two integers
-	baseBlock, _ := bc.GetBlock(hashes[total -1 - index])//this block is the first block in the batch of blocks we need to calculate difficulty
+	baseBlock, _ := bc.GetBlockFromHash(hashes[total -1 - index])//this block is the first block in the batch of blocks we need to calculate difficulty
 
 	if height%blocksPerTargetUpdate != 0 {
 		return baseBlock.Target
 	}
 	
-	lastBlock, _ := bc.GetBlock(hashes[total - 1 - (blocksPerTargetUpdate + index - 1)])//this block is the last block in the batch of blocks we need to calculate difficulty
+	lastBlock, _ := bc.GetBlockFromHash(hashes[total - 1 - (blocksPerTargetUpdate + index - 1)])//this block is the last block in the batch of blocks we need to calculate difficulty
 	t := baseBlock.Timestamp - lastBlock.Timestamp
 	prevTarget = baseBlock.Target
 	timeTarget := secondsPerMinute * blocksPerTargetUpdate / targetBlocksPerMinute
@@ -325,7 +408,7 @@ func (bc *Blockchain) CurrentTarget() *big.Int {
 }
 
 // MineBlock mines a new block with the provided transactions
-func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
+func (bc *Blockchain) MineBlock(transactions []*Transaction, solHash []byte, solution []int,  pgHash []byte) *Block {
 	var lastHash []byte
 	var lastHeight int
 
@@ -335,7 +418,6 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
 			log.Panic("ERROR: Invalid transaction")
 		}
 	}
-
 	err := bc.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		lastHash = b.Get([]byte("l"))
@@ -352,8 +434,7 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction) *Block {
 	}
 
 	newTarget := bc.CalculateTarget(lastHeight+1)
-	newBlock := NewBlock(transactions, lastHash, lastHeight+1, newTarget)
-
+	newBlock := NewBlock(transactions, lastHash, lastHeight+1, newTarget, solHash, solution, pgHash)
 	pow := NewProofOfWork(newBlock)
 	nonce, hash := pow.Run()
 
@@ -415,6 +496,28 @@ func (bc *Blockchain) VerifyTransaction(tx *Transaction) bool {
 	}
 
 	return tx.Verify(prevTXs)
+}
+
+// AddProblemGraph add a problem to the database
+func (bc *Blockchain) AddProblemGraph(pg *ProblemGraph) {
+	err := bc.db.Update(func(tx *bolt.Tx) error {
+		b := tx.Bucket([]byte(problemsBucket))
+		problemInDb := b.Get(pg.Hash)
+		if problemInDb != nil {
+			return nil
+		}
+
+		pgData := pg.Serialize()
+		err := b.Put(pg.Hash, pgData)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		return nil
+	})
+	if err != nil {
+		log.Panic(err)
+	}
 }
 
 func dbExists(dbFile string) bool {

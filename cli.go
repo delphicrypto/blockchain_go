@@ -21,7 +21,9 @@ func (cli *CLI) printUsage() {
 	fmt.Println("  getbalances - Get balances of all addresses")
 	fmt.Println("  listaddresses - Lists all addresses from the wallet file")
 	fmt.Println("  printchain - Print all the blocks of the blockchain")
+	fmt.Println("  printproblems - Print all the problems of the blockchain")
 	fmt.Println("  printlast - Print last block of the blockchain")
+	fmt.Println("  printblock HEIGHT - Display block number HEIGHT")
 	fmt.Println("  reindexutxo - Rebuilds the UTXO set")
 	fmt.Println("  send FROM TO AMOUNT - Send AMOUNT of coins from FROM address to TO.")
 	fmt.Println("  startnode -miner ADDRESS - Start a node with ID specified in NODE_ID env. var. -miner enables mining")
@@ -81,8 +83,9 @@ func (cli *CLI) Run() {
 			case "getdiff":
 				cli.getDifficulty(nodeID)
 			case "creategraph":
-				cli.createGraph(50, 620)
-				
+				cli.createGraph(nodeID, 500, 110000)
+			case "printproblems":
+				cli.printProblemGraphs(nodeID)	
 			case "getbalance":
 				if len(commands) > 1 {
 					address := commands[1]
@@ -91,6 +94,16 @@ func (cli *CLI) Run() {
 				 	fmt.Println("getbalance ADDRESS - Get balance of ADDRESS")
 				 	fmt.Println("Missing argument ADDRESS")
 				 }
+
+			case "printblock":
+				if len(commands) > 1 {
+					height,_ := strconv.Atoi(commands[1])
+					cli.printHeight(nodeID, height)
+				 } else {
+				 	fmt.Println("printblock HEIGHT - Display block number HEIGHT")
+				 	fmt.Println("Missing argument HEIGHT")
+				 }
+
 			case "send":
 				if len(commands) > 3 {
 					sendFrom := commands[1]
@@ -131,7 +144,7 @@ func (cli *CLI) Run() {
 					}
 				}
 				for i := 0; i < n; i++ {
-					cli.mineblock(nodeID)
+					cli.mineblock(nodeID, true)
 				}
 				
 			default:
