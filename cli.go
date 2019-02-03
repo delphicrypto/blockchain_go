@@ -26,6 +26,8 @@ func (cli *CLI) printUsage() {
 	fmt.Println("  send FROM TO AMOUNT - Send AMOUNT of coins from FROM address to TO.")
 	fmt.Println("  startnode -miner ADDRESS - Start a node with ID specified in NODE_ID env. var. -miner enables mining")
 	fmt.Println("  mineblock N- Mine N blocks with empty transactions. Default is 1")
+	fmt.Println("  getdiff - Display current difficulty")
+	fmt.Println("  creategraph - Create a new problem graph, with default 50 nodes and 620 edges")
 	
 }
 
@@ -78,6 +80,8 @@ func (cli *CLI) Run() {
 				cli.getAllBalances(nodeID)
 			case "getdiff":
 				cli.getDifficulty(nodeID)
+			case "creategraph":
+				cli.createGraph(50, 620)
 				
 			case "getbalance":
 				if len(commands) > 1 {

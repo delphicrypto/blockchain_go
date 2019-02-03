@@ -14,10 +14,13 @@ func (cli *CLI) printLast(nodeID string) {
 	printGreen(fmt.Sprintf("============ Block %d ============\n", block.Height))
 	printBlue(fmt.Sprintf("Hash: %x\n", block.Hash))
 	fmt.Printf("Prev: %x\n", block.PrevBlockHash)
-	fmt.Printf("Block target: %d\n", block.Target)
+	// fmt.Printf("Block target: %d\n", block.Target)
 	blockchainTarget := bc.CalculateTarget(block.Height)
-	fmt.Printf("Chain target: %d\n", blockchainTarget)
+	// fmt.Printf("Chain target: %d\n", blockchainTarget)
 	fmt.Printf("Difficulty: %d\n", targetToDifficulty(block.Target))
+	prevBlock, _ := bc.GetBlock(block.PrevBlockHash)
+	time := (block.Timestamp - prevBlock.Timestamp) / 1e9
+	fmt.Printf("Time: %d seconds\n", time)
 	validBlock := block.Validate(blockchainTarget)
 	if validBlock {
 		printGreen(fmt.Sprintf("PoW: %s\n\n", strconv.FormatBool(validBlock)))
