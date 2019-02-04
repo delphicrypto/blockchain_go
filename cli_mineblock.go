@@ -10,7 +10,7 @@ func (cli *CLI) mineblock(nodeID string, withProblemGraph bool) {
 
 	pgHash := []byte{}
 	if withProblemGraph {
-		pg := NewProblemGraph(500, 800)
+		pg := NewProblemGraph(30, 20)
 		bc.AddProblemGraph(pg)
 		pgHash = pg.Hash
 	}

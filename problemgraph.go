@@ -31,7 +31,42 @@ func NewProblemGraph(nodes int, edges int) *ProblemGraph {
 	return &pg
 }
 
-func (pg *ProblemGraph) FindClique() [][]int {
+// Hash the graph
+func (pg *ProblemGraph) GetHash() []byte {
+    arrBytes := []byte{}
+    jsonBytes, _ := json.Marshal(pg)
+    arrBytes = append(arrBytes, jsonBytes...)
+    
+
+	hash := sha256.Sum256(arrBytes)
+
+	return hash[:]
+}
+
+
+//FindClique finds all k-cliques and returns them
+func (pg *ProblemGraph) FindClique(k int) [][]int {
+	//we check that we have a siple (not loops nor parallels) graph
+	simple, _ := pg.Graph.IsSimple()
+	if !simple {
+		return [][]int{}
+	}
+
+	kCliques := [][]int{}
+	pg.Graph.BronKerbosch3(pg.Graph.BKPivotMaxDegree, func(c bits.Bits) bool {
+		clique := c.Slice()
+    	if len(clique) == k {
+    		kCliques = append(kCliques, clique)
+    	} else if len(clique) > k {
+    		return false
+    	}
+    	return true
+	})
+	return kCliques
+}
+
+//FindClique finds all max-cliques and returns them. This scales exponentially (it's Np complete)
+func (pg *ProblemGraph) FindMaxClique() [][]int {
 	//we check that we have a siple (not loops nor parallels) graph
 	simple, _ := pg.Graph.IsSimple()
 	if !simple {
@@ -51,37 +86,26 @@ func (pg *ProblemGraph) FindClique() [][]int {
     	}
     	return true
 	})
-
-    fmt.Printf("Max Clique Size: %d\n", m)
-	for _, c := range maxCliques {
-		fmt.Println(c)
-	}
-
 	return maxCliques
-}
-
-// Hash the graph
-func (pg *ProblemGraph) GetHash() []byte {
-    arrBytes := []byte{}
-    jsonBytes, _ := json.Marshal(pg)
-    arrBytes = append(arrBytes, jsonBytes...)
-    
-
-	hash := sha256.Sum256(arrBytes)
-
-	return hash[:]
 }
 
 //NicePrint print nicely the graph properties
 func (pg *ProblemGraph) NicePrint() {
 	fmt.Printf("\n")
 	printBlue(fmt.Sprintf("Hash: %x\n",pg.Hash))
-	for fr, to := range pg.Graph.AdjacencyList {
-    	fmt.Println(fr, to)
-	}
+	// for fr, to := range pg.Graph.AdjacencyList {
+ //    	fmt.Println(fr, to)
+	// }
 	connected := pg.Graph.IsConnected()
 	printGreen(fmt.Sprintf("Connected: %s\n", strconv.FormatBool(connected)))
-
+	for k := 3; k <= 5; k++ {
+		kcliques := pg.FindClique(k)
+		printYellow(fmt.Sprintf("%d-cliques:",k))
+		for _, c := range kcliques {
+			fmt.Println(c)
+		}
+		
+	}
 	fmt.Printf("\n")
 }
 

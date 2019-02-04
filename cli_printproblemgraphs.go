@@ -19,7 +19,7 @@ func (cli *CLI) printProblemGraphs(nodeID string) {
 			filename := "jsgraph/data/graph.js"
 			WriteToFile(filename, text)
 			if len(pg.Graph.AdjacencyList) < 50 {
-				maxCliques := pg.FindClique()
+				maxCliques := pg.FindMaxClique()
 				textsol := CliquesToString(maxCliques)
 				filenamesol := "jsgraph/data/sol.js"
 				WriteToFile(filenamesol, textsol)	

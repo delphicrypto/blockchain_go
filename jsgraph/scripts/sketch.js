@@ -24,6 +24,8 @@ function setup() {
 function prepareGraph() {
     canvas.background(255);
     canvas.fill(255);
+    cliqueText = createElement('h2', "There are " + cliques.length + " " + cliques[0].length + "-cliques.");
+    cliqueText.position(30, 100);
     verteces = [];
     for (var key in graphdata) {
         node = graphdata[key];
@@ -45,7 +47,7 @@ function draw() {
         verteces[i].color = "white";
     }
     for (var j = cl.length - 1; j >= 0; j--) {
-        verteces[cl[j]].color = "red";
+        verteces[cl[j]].color = "CornflowerBlue";
     }
 
     for (var from = 0; from < verteces.length; from++) {
