@@ -144,7 +144,7 @@ func (cli *CLI) Run() {
 					}
 				}
 				for i := 0; i < n; i++ {
-					cli.mineblock(nodeID, true)
+					cli.mineblock(nodeID, false)
 				}
 				
 			default:

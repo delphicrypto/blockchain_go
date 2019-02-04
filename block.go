@@ -34,9 +34,10 @@ func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int, tar
 }
 
 // NewGenesisBlock creates and returns genesis Block
-func NewGenesisBlock(coinbase *Transaction) *Block {
+func NewGenesisBlock(coinbase *Transaction, pgHash []byte) *Block {
 	target := targetFromTargetBits(initialTargetBits)
-	return NewBlock([]*Transaction{coinbase}, []byte{}, 0, target, []byte{}, []int{}, []byte{})
+	
+	return NewBlock([]*Transaction{coinbase}, []byte{}, 0, target, []byte{}, []int{}, pgHash)
 }
 
 // HashTransactions returns a hash of the transactions in the block

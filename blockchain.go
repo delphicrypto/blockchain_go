@@ -41,7 +41,9 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 	var tip []byte
 
 	cbtx := NewCoinbaseTX(address, genesisCoinbaseData)
-	genesis := NewGenesisBlock(cbtx)
+	pg := NewProblemGraph(20, 85)//remember to add it to the blockchain db at the end!
+	
+	genesis := NewGenesisBlock(cbtx, pg.Hash)
 	pow := NewProofOfWork(genesis)
 	nonce, hash := pow.Run()
 	genesis.Hash = hash[:]
@@ -84,6 +86,7 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 	}
 
 	bc := Blockchain{tip, db}
+	bc.AddProblemGraph(pg)
 
 	return &bc
 }
@@ -355,6 +358,24 @@ func (bc *Blockchain) GetProblemGraphHashes() [][]byte {
 	}
 
 	return problems
+}
+
+// GetBestSolution returns the best solution found in the blockchain for the given problemgraph
+func (bc *Blockchain) GetBestSolution(pg *ProblemGraph) []int {
+	bci := bc.Iterator()
+	bestSol := []int{}
+	for {
+		block := bci.Next()
+		if Equal(block.SolutionHash, pg.Hash) && len(block.Solution) > len(bestSol) {
+			bestSol = block.Solution
+		}
+
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+
+	return bestSol
 }
 
 //Calculate the new target bits

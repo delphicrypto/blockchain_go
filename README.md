@@ -11,11 +11,10 @@ go run *.go
 
 ## TODO
 
-Add problems to blockchain.db as a new bucket
-retrieve problem hashes
 print problems from hash
 nice print of graphs (maybe w javascript) and current solutions
 extend max clique function to find k-clique instead
 mine with solution
+validate block to verify that given solution is better than any given before
 difficulty with solution
 parallel mining with channel block to have realistic miners
