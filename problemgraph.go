@@ -31,11 +31,11 @@ func NewProblemGraph(nodes int, edges int) *ProblemGraph {
 	return &pg
 }
 
-func (pg *ProblemGraph) FindClique() bool {
+func (pg *ProblemGraph) FindClique() [][]int {
 	//we check that we have a siple (not loops nor parallels) graph
 	simple, _ := pg.Graph.IsSimple()
 	if !simple {
-		return false
+		return [][]int{}
 	}
 
 	var maxCliques [][]int
@@ -44,10 +44,10 @@ func (pg *ProblemGraph) FindClique() bool {
 		clique := c.Slice()
     	if len(clique) > m {
     		maxCliques = maxCliques[:0]
-    		maxCliques = append(maxCliques, c.Slice())
+    		maxCliques = append(maxCliques, clique)
     		m = len(clique)
     	} else if len(clique) == m {
-    		maxCliques = append(maxCliques, c.Slice())
+    		maxCliques = append(maxCliques, clique)
     	}
     	return true
 	})
@@ -57,7 +57,7 @@ func (pg *ProblemGraph) FindClique() bool {
 		fmt.Println(c)
 	}
 
-	return true
+	return maxCliques
 }
 
 // Hash the graph
@@ -79,8 +79,6 @@ func (pg *ProblemGraph) NicePrint() {
 	for fr, to := range pg.Graph.AdjacencyList {
     	fmt.Println(fr, to)
 	}
-	// clique := pg.FindClique()
-	// printGreen(fmt.Sprintf("Clique: %s\n", strconv.FormatBool(clique)))
 	connected := pg.Graph.IsConnected()
 	printGreen(fmt.Sprintf("Connected: %s\n", strconv.FormatBool(connected)))
 

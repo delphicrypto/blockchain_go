@@ -15,8 +15,20 @@ func (cli *CLI) printProblemGraphs(nodeID string) {
 		if err == nil {
 			fmt.Println("Problem ", i)
 			pg.NicePrint()
+			text := ProblemToString(pg)
+			filename := "jsgraph/data/graph.js"
+			WriteToFile(filename, text)
+			if len(pg.Graph.AdjacencyList) < 50 {
+				maxCliques := pg.FindClique()
+				textsol := CliquesToString(maxCliques)
+				filenamesol := "jsgraph/data/sol.js"
+				WriteToFile(filenamesol, textsol)	
+			} 
 		} else {
 			fmt.Println(err)
 		}
 	}
+
+	
 }
+

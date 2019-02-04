@@ -5,6 +5,9 @@ import (
 	"encoding/binary"
 	"log"
 	"math/big"
+	"strconv"
+	"strings"
+	"os"
 	"github.com/fatih/color"
 )
 
@@ -71,3 +74,62 @@ func printBlue(text string) {
 func printYellow(text string) {
 	color.Yellow(text)
 }
+
+func check(e error) {
+    if e != nil {
+        panic(e)
+    }
+}
+
+func WriteToFile(filename string, text string) {
+	f, _ := os.Create(filename)
+
+	f, err := os.OpenFile(filename, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	if err != nil {
+	    panic(err)
+	}
+
+	defer f.Close()
+
+	if _, err = f.WriteString(text); err != nil {
+	    panic(err)
+	}
+}
+
+func ProblemToString(pg ProblemGraph) string {
+	text := "var graphdata = {"
+	for from, to := range pg.Graph.AdjacencyList {
+		text +=  strconv.Itoa(from) + " : ["
+		nt := []string{}
+		for _, t := range to {
+			nt = append(nt, strconv.Itoa(int(t)))
+		}
+		text +=  strings.Join(nt, ",") + "]"
+		if from < len(pg.Graph.AdjacencyList) - 1 {
+			text +=  ", \n"
+		}
+    	
+	}
+	text +=  "};"
+	return text
+}
+
+func CliquesToString(cliques [][]int) string {
+	text := "var cliques = ["
+	for j, c := range cliques {
+		text += "[ "
+		for i, n := range c {
+			text += strconv.Itoa(n)
+			if i < len(c) - 1{
+				text += ", "
+			}
+		}
+		text += "]"
+		if j < len(cliques) - 1{
+				text += ",\n "
+		}
+	}
+	text += "];"
+	return text
+}
+
