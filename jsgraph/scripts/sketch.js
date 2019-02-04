@@ -1,5 +1,5 @@
 var verteces = [];
-var debug;
+var slider;
 var w = 1200;
 var h = 800;
 var r = 50;
@@ -9,13 +9,16 @@ var posOffset = 7 * r;
 var colours = ['Chartreuse', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Cyan', 'DarkCyan', 'DarkGoldenRod',
     'DarkGrey', 'DarkGreen', 'DarkKhaki ', 'DarkOrange', 'DarkOrchid', 'DarkRed', 'DarkSalmon', 'HotPink', 'Yellow', 'BlueViolet', 'Sienna', 'Silver', 'RosyBrown',
     'MistyRose', 'White', 'BurlyWood', 'Salmon', 'Tomato', 'SlateBlue', 'SeaGreen', 'Plum', 'PaleTurquoise', 'PaleVioletRed', 'OliveDrab', 'Olive', 'MidnightBlue',
-    'MediumOrchid', 'LightCyan', 'Grey', 'Gold', 'GoldRod', 'Indigo', 'Maroon']
+    'MediumOrchid', 'LightCyan', 'Grey', 'Gold', 'GoldRod', 'Indigo', 'Maroon'
+]
 
 
 function setup() {
     canvas = createCanvas(w, h);
+    frameRate(2);
     prepareGraph();
-    drawGraph();
+    slider = createSlider(0, cliques.length - 1, 1);
+    slider.position(20, 20);
 }
 
 function prepareGraph() {
@@ -32,31 +35,46 @@ function prepareGraph() {
     }
 }
 
-function drawGraph() {
+function draw() {
+    clear()
+    idx = slider.value()
+    cl = cliques[idx];
+
     for (var i = 0; i < verteces.length; i++) {
-        for (var j = 0; j < verteces[i].connections.length; j++) {
+        //draw vertex
+        verteces[i].color = "white";
+    }
+    for (var j = cl.length - 1; j >= 0; j--) {
+        verteces[cl[j]].color = "red";
+    }
+
+    for (var from = 0; from < verteces.length; from++) {
+        for (var j = 0; j < verteces[from].connections.length; j++) {
+            to = verteces[from].connections[j]
             //draw line between two vertecies
-            var x1 = verteces[i].x;
-            var y1 = verteces[i].y;
-            var x2 = verteces[verteces[i].connections[j]].x;
-            var y2 = verteces[verteces[i].connections[j]].y;
+            var x1 = verteces[from].x;
+            var y1 = verteces[from].y;
+            var x2 = verteces[to].x;
+            var y2 = verteces[to].y;
+            push();
+            if (cl.includes(from) && cl.includes(to)) {
+                strokeWeight(3);
+                stroke(10);
+            } else {
+                stroke(153);
+            }
             line(x1, y1, x2, y2);
+            pop();
         }
     }
 
-    for (var i = 0; i < cliques.length; i++) {
-        cl = cliques[i];
-        for (var j = cl.length - 1; j >= 0; j--) {
-            verteces[cl[j]].color = colours[i];
-        }
-        
-    }
 
     for (var i = 0; i < verteces.length; i++) {
         //draw vertex
         verteces[i].show();
     }
 }
+
 
 function Vertex(i) {
     this.color = 'white';
@@ -71,10 +89,9 @@ function Vertex(i) {
         this.text.position(this.x - textXOffset, this.y - textYOffset);
         push();
         strokeWeight(5);
+        stroke(0);
         fill(this.color);
-
         ellipse(this.x, this.y, r, r);
-
         pop();
     }
 
