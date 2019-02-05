@@ -22,12 +22,14 @@ func (cli *CLI) printUsage() {
 	fmt.Println("  listaddresses - Lists all addresses from the wallet file")
 	fmt.Println("  printchain - Print all the blocks of the blockchain")
 	fmt.Println("  printproblems - Print all the problems of the blockchain")
+	fmt.Println("  printproblem HASH - Display problem with hash HASH")
 	fmt.Println("  printlast - Print last block of the blockchain")
 	fmt.Println("  printblock HEIGHT - Display block number HEIGHT")
 	fmt.Println("  reindexutxo - Rebuilds the UTXO set")
 	fmt.Println("  send FROM TO AMOUNT - Send AMOUNT of coins from FROM address to TO.")
 	fmt.Println("  startnode -miner ADDRESS - Start a node with ID specified in NODE_ID env. var. -miner enables mining")
 	fmt.Println("  mineblock N- Mine N blocks with empty transactions. Default is 1")
+	fmt.Println("  mineblockprob NODES DENSITY- Mine 1 block with empty transactions and NODES nodes and DENSITY density")
 	fmt.Println("  getdiff - Display current difficulty")
 	fmt.Println("  creategraph - Create a new problem graph, with default 50 nodes and 620 edges")
 	
@@ -94,7 +96,14 @@ func (cli *CLI) Run() {
 				 	fmt.Println("getbalance ADDRESS - Get balance of ADDRESS")
 				 	fmt.Println("Missing argument ADDRESS")
 				 }
-
+			case "printproblem":
+				if len(commands) > 1 {
+					hash := commands[1]
+					cli.printProblemGraph(nodeID, hash)
+				 } else {
+				 	fmt.Println("printproblem HASH - Display problem with hash HASH")
+				 	fmt.Println("Missing argument HASH")
+				 }
 			case "printblock":
 				if len(commands) > 1 {
 					height,_ := strconv.Atoi(commands[1])
@@ -134,7 +143,7 @@ func (cli *CLI) Run() {
 				 }
 			case "mineblock":
 				n := 1
-				if len(commands) > 1 {
+				if len(commands) == 2 {
 					m, err := strconv.Atoi(commands[1])
 					if err != nil {
 						fmt.Println("Invalid N argument.")
@@ -144,7 +153,21 @@ func (cli *CLI) Run() {
 					}
 				}
 				for i := 0; i < n; i++ {
-					cli.mineblock(nodeID, true)
+					cli.mineblock(nodeID, false, 0, 0)
+				}
+			case "mineblockprob":
+				if len(commands) == 3 {
+					nodes, err1 := strconv.Atoi(commands[1])
+					density, err2 := strconv.ParseFloat(commands[2], 64)
+					if err1 != nil || err2 != nil {
+						fmt.Println("Invalid arguments.")
+						fmt.Println("  mineblockprob NODES DENSITY- Mine 1 block with empty transactions and NODES nodes and DENSITY density")
+					} else {
+						cli.mineblock(nodeID, true, nodes, density)
+					}
+				} else {
+					fmt.Println("Invalid arguments.")
+					fmt.Println("  mineblockprob NODES DENSITY- Mine 1 block with empty transactions and NODES nodes and DENSITY density")
 				}
 				
 			default:

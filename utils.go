@@ -110,12 +110,12 @@ func ProblemToString(pg ProblemGraph) string {
 		}
     	
 	}
-	text +=  "};"
+	text +=  "};\n"
 	return text
 }
 
-func CliquesToString(cliques [][]int) string {
-	text := "var cliques = ["
+func CliquesToString(k string, cliques [][]int) string {
+	text := k +" : ["
 	for j, c := range cliques {
 		text += "[ "
 		for i, n := range c {
@@ -129,7 +129,7 @@ func CliquesToString(cliques [][]int) string {
 				text += ",\n "
 		}
 	}
-	text += "];"
+	text += "]"
 	return text
 }
 

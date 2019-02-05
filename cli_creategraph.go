@@ -6,6 +6,6 @@ func (cli *CLI) createGraph(nodeID string, nodes int, edges int) {
 	defer bc.db.Close()
 
 	pg := NewProblemGraph(nodes, edges)
-	pg.NicePrint()
+	pg.NicePrint(bc)
 	bc.AddProblemGraph(pg)
 }

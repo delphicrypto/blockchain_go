@@ -44,8 +44,8 @@ func (pg *ProblemGraph) GetHash() []byte {
 }
 
 
-//FindClique finds all k-cliques and returns them
-func (pg *ProblemGraph) FindClique(k int) [][]int {
+//FindCliques finds all k-cliques and returns them
+func (pg *ProblemGraph) FindAllKCliques(k int) [][]int {
 	//we check that we have a siple (not loops nor parallels) graph
 	simple, _ := pg.Graph.IsSimple()
 	if !simple {
@@ -53,16 +53,40 @@ func (pg *ProblemGraph) FindClique(k int) [][]int {
 	}
 
 	kCliques := [][]int{}
-	pg.Graph.BronKerbosch3(pg.Graph.BKPivotMaxDegree, func(c bits.Bits) bool {
+	//pg.Graph.BKPivotMaxDegree, 
+	pg.Graph.BronKerbosch1(func(c bits.Bits) bool {
 		clique := c.Slice()
     	if len(clique) == k {
     		kCliques = append(kCliques, clique)
-    	} else if len(clique) > k {
+    	} else if len(clique) > k + 4 { //this +4 is arbitrary. The problem is that if the cliques is a sub-clique, is not found unless we return false here for the size of the parent clique
     		return false
     	}
     	return true
 	})
 	return kCliques
+}
+
+//FindClique finds one at least k-clique and returns it
+func (pg *ProblemGraph) FindKClique(k int) []int {
+	//we check that we have a siple (not loops nor parallels) graph
+	simple, _ := pg.Graph.IsSimple()
+	if !simple {
+		return []int{}
+	}
+
+	kClique := []int{}
+	//pg.Graph.BKPivotMaxDegree
+	pg.Graph.BronKerbosch1(func(c bits.Bits) bool {
+		clique := c.Slice()
+    	if len(clique) >= k {
+    		kClique = clique
+    		return false
+    	} else if len(clique) > k {
+    		return false
+    	}
+    	return true
+	})
+	return kClique
 }
 
 //FindClique finds all max-cliques and returns them. This scales exponentially (it's Np complete)
@@ -90,7 +114,7 @@ func (pg *ProblemGraph) FindMaxClique() [][]int {
 }
 
 //NicePrint print nicely the graph properties
-func (pg *ProblemGraph) NicePrint() {
+func (pg *ProblemGraph) NicePrint(bc *Blockchain) {
 	fmt.Printf("\n")
 	printBlue(fmt.Sprintf("Hash: %x\n",pg.Hash))
 	// for fr, to := range pg.Graph.AdjacencyList {
@@ -98,15 +122,17 @@ func (pg *ProblemGraph) NicePrint() {
 	// }
 	connected := pg.Graph.IsConnected()
 	printGreen(fmt.Sprintf("Connected: %s\n", strconv.FormatBool(connected)))
-	for k := 3; k <= 5; k++ {
-		kcliques := pg.FindClique(k)
-		printYellow(fmt.Sprintf("%d-cliques:",k))
-		for _, c := range kcliques {
-			fmt.Println(c)
-		}
-		
-	}
-	fmt.Printf("\n")
+	// for k := 3; k <= 8; k++ {
+	// 	kcliques := pg.FindAllKCliques(k)
+	// 	printYellow(fmt.Sprintf("%d %d-cliques:",len(kcliques), k))
+	// 	for _, c := range kcliques {
+	// 		fmt.Print(c)
+	// 	}
+	// 	fmt.Print("\n")
+	// }
+	bsol := bc.GetBestSolution(pg)
+	printYellow(fmt.Sprintf("Best solution: %d-clique:",len(bsol)))
+	fmt.Println(bsol)
 }
 
 // Serialize serializes the graph

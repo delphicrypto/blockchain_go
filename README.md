@@ -18,3 +18,5 @@ mine with solution
 validate block to verify that given solution is better than any given before
 difficulty with solution
 parallel mining with channel block to have realistic miners
+
+when propose new problem we can already give initial solution, so that the problem is not too easy at the beginning

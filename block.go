@@ -94,13 +94,14 @@ func (b *Block) NicePrint(bc *Blockchain) {
 	}
 
 	if len(b.SolutionHash) > 0 {
-		printGreen(fmt.Sprintf("Solution to %x: %s\n", b.SolutionHash, b.Solution))
+		printGreen(fmt.Sprintf("Solution to %x: ", b.SolutionHash))
+		fmt.Println(b.Solution)
 	} else {
 		printRed("No solution\n")
 	}
 
 	if len(b.ProblemGraphHash) > 0 {
-		printGreen(fmt.Sprintf("New Problem %x: \n", b.ProblemGraphHash))
+		printGreen(fmt.Sprintf("New Problem %x \n", b.ProblemGraphHash))
 		// pg, err := bc.GetProblemGraphFromHash(b.ProblemGraphHash)
 		// if err == nil {
 		// 	pg.NicePrint()

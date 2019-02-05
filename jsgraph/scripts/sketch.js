@@ -1,4 +1,5 @@
 var verteces = [];
+var allCliques = [];
 var slider;
 var w = 1200;
 var h = 800;
@@ -6,26 +7,30 @@ var r = 50;
 var textXOffset = 0.15 * r;
 var textYOffset = 0.6 * r;
 var posOffset = 7 * r;
-var colours = ['Chartreuse', 'Coral', 'CornflowerBlue', 'Cornsilk', 'Cyan', 'DarkCyan', 'DarkGoldenRod',
-    'DarkGrey', 'DarkGreen', 'DarkKhaki ', 'DarkOrange', 'DarkOrchid', 'DarkRed', 'DarkSalmon', 'HotPink', 'Yellow', 'BlueViolet', 'Sienna', 'Silver', 'RosyBrown',
-    'MistyRose', 'White', 'BurlyWood', 'Salmon', 'Tomato', 'SlateBlue', 'SeaGreen', 'Plum', 'PaleTurquoise', 'PaleVioletRed', 'OliveDrab', 'Olive', 'MidnightBlue',
-    'MediumOrchid', 'LightCyan', 'Grey', 'Gold', 'GoldRod', 'Indigo', 'Maroon'
-]
+var colours = ['Coral', 'CornflowerBlue', 'DarkGoldenRod','DarkGreen', 'DarkKhaki ', 'DarkOrange', 'DarkOrchid', 'DarkRed', 'DarkSalmon', 'HotPink', 'Yellow', 'BlueViolet', 'Sienna', 'Silver', 'RosyBrown',
+    'MistyRose']
 
 
 function setup() {
     canvas = createCanvas(w, h);
-    frameRate(2);
+    frameRate(3);
     prepareGraph();
-    slider = createSlider(0, cliques.length - 1, 1);
-    slider.position(20, 20);
+    slider = createSlider(0, allCliques.length - 1, 1);
+    slider.position(20, h);
 }
 
 function prepareGraph() {
     canvas.background(255);
     canvas.fill(255);
-    cliqueText = createElement('h2', "There are " + cliques.length + " " + cliques[0].length + "-cliques.");
-    cliqueText.position(30, 100);
+
+    for (var key in cliques) {
+        cliqueText = createElement('h2', "There are " + cliques[key].length + " " + key + "-cliques");
+        cliqueText.position(30, 10 + 30 * int(key));
+        for (var i = 0; i < cliques[key].length; i++) {
+            allCliques.push(cliques[key][i]);
+        }
+        
+    }
     verteces = [];
     for (var key in graphdata) {
         node = graphdata[key];
@@ -40,14 +45,13 @@ function prepareGraph() {
 function draw() {
     clear()
     idx = slider.value()
-    cl = cliques[idx];
-
+    cl = allCliques[idx];
     for (var i = 0; i < verteces.length; i++) {
         //draw vertex
         verteces[i].color = "white";
     }
     for (var j = cl.length - 1; j >= 0; j--) {
-        verteces[cl[j]].color = "CornflowerBlue";
+        verteces[cl[j]].color = colours[cl.length];
     }
 
     for (var from = 0; from < verteces.length; from++) {

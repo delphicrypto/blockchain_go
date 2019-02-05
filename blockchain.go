@@ -306,7 +306,6 @@ func (bc *Blockchain) GetBlockHashes() [][]byte {
 
 	for {
 		block := bci.Next()
-
 		blocks = append(blocks, block.Hash)
 
 		if len(block.PrevBlockHash) == 0 {
