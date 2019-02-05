@@ -1,5 +1,15 @@
 # Blockchain for https://arxiv.org/abs/1708.09419
 
+## Modules
+
+```
+go get github.com/boltdb/bolt
+go get github.com/soniakeys/graph
+go get github.com/soniakeys/bits
+go get golang.org/x/crypto/ripemd160
+go get github.com/fatih/color
+```
+
 
 ## Launch
 
