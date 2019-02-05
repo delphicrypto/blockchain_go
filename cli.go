@@ -35,13 +35,6 @@ func (cli *CLI) printUsage() {
 	
 }
 
-func (cli *CLI) validateArgs() {
-	if len(os.Args) < 2 {
-		cli.printUsage()
-		os.Exit(1)
-	}
-}
-
 // Run parses command line arguments and processes commands
 func (cli *CLI) Run() {
 	//cli.validateArgs()
@@ -74,6 +67,8 @@ func (cli *CLI) Run() {
 				cli.printLast(nodeID)
 			case "q", "quit":
 				os.Exit(1)
+			case "qs":
+				cli.quickstart(nodeID)
 			case "createwallet":
 				cli.createWallet(nodeID)
 			case "listaddresses":

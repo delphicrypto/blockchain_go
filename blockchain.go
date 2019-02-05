@@ -12,15 +12,19 @@ import (
 	"github.com/boltdb/bolt"
 )
 
-const dbFile = "blockchain_%s.db"
-const blocksBucket = "blocks"
-const problemsBucket = "problems"
-const genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
-const blocksPerTargetUpdate = 64
-const initialTargetBits = 16
-const targetBlocksPerMinute = 6
-const secondsPerMinute = 60
-const maxTargetChange = 4
+const (
+	dbFile = "blockchain_%s.db"
+	blocksBucket = "blocks"
+	problemsBucket = "problems"
+	genesisCoinbaseData = "The Times 03/Jan/2009 Chancellor on brink of second bailout for banks"
+	blocksPerTargetUpdate = 64
+	initialTargetBits = 16
+	initialReducedTargetBits = 12
+	maxTargetLength = 78
+	targetBlocksPerMinute = 6
+	secondsPerMinute = 60
+	maxTargetChange = 4
+)
 // Blockchain implements interactions with a DB
 type Blockchain struct {
 	tip []byte
@@ -34,20 +38,13 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 		fmt.Println("Blockchain already exists.")
 		bc := NewBlockchain(nodeID)
 		return bc
-
-		//os.Exit(1)
 	}
 
 	var tip []byte
 
 	cbtx := NewCoinbaseTX(address, genesisCoinbaseData)
-	pg := NewProblemGraph(20, 85)//remember to add it to the blockchain db at the end!
-	
-	genesis := NewGenesisBlock(cbtx, pg.Hash)
-	pow := NewProofOfWork(genesis)
-	nonce, hash := pow.Run()
-	genesis.Hash = hash[:]
-	genesis.Nonce = nonce
+	//pg := NewProblemGraph(20, 85)//remember to add it to the blockchain db at the end!
+	genesis := NewGenesisBlock(cbtx)
 	
 	db, err := bolt.Open(dbFile, 0600, nil)
 	if err != nil {
@@ -86,7 +83,7 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 	}
 
 	bc := Blockchain{tip, db}
-	bc.AddProblemGraph(pg)
+	//bc.AddProblemGraph(pg)
 
 	return &bc
 }
@@ -122,37 +119,39 @@ func NewBlockchain(nodeID string) *Blockchain {
 
 // AddBlock saves the block into the blockchain
 func (bc *Blockchain) AddBlock(block *Block) {
-	err := bc.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(blocksBucket))
-		blockInDb := b.Get(block.Hash)
+	if block.Validate(bc) {
+		err := bc.db.Update(func(tx *bolt.Tx) error {
+			b := tx.Bucket([]byte(blocksBucket))
+			blockInDb := b.Get(block.Hash)
 
-		if blockInDb != nil {
-			return nil
-		}
+			if blockInDb != nil {
+				return nil
+			}
 
-		blockData := block.Serialize()
-		err := b.Put(block.Hash, blockData)
-		if err != nil {
-			log.Panic(err)
-		}
-
-		lastHash := b.Get([]byte("l"))
-		lastBlockData := b.Get(lastHash)
-		lastBlock := DeserializeBlock(lastBlockData)
-
-		if block.Height > lastBlock.Height {
-			err = b.Put([]byte("l"), block.Hash)
+			blockData := block.Serialize()
+			err := b.Put(block.Hash, blockData)
 			if err != nil {
 				log.Panic(err)
 			}
-			bc.tip = block.Hash
-		}
 
-		return nil
-	})
-	if err != nil {
-		log.Panic(err)
-	}
+			lastHash := b.Get([]byte("l"))
+			lastBlockData := b.Get(lastHash)
+			lastBlock := DeserializeBlock(lastBlockData)
+
+			if block.Height > lastBlock.Height {
+				err = b.Put([]byte("l"), block.Hash)
+				if err != nil {
+					log.Panic(err)
+				}
+				bc.tip = block.Hash
+			}
+
+			return nil
+		})
+		if err != nil {
+			log.Panic(err)
+		}
+	}	
 }
 
 // FindTransaction finds a transaction by its ID
@@ -360,12 +359,12 @@ func (bc *Blockchain) GetProblemGraphHashes() [][]byte {
 }
 
 // GetBestSolution returns the best solution found in the blockchain for the given problemgraph
-func (bc *Blockchain) GetBestSolution(pg *ProblemGraph) []int {
+func (bc *Blockchain) GetBestSolution(pg *ProblemGraph, height int) []int {
 	bci := bc.Iterator()
 	bestSol := []int{}
 	for {
 		block := bci.Next()
-		if Equal(block.SolutionHash, pg.Hash) && len(block.Solution) > len(bestSol) {
+		if Equal(block.SolutionHash, pg.Hash) && (len(block.Solution) > len(bestSol) && (block.Height <= height)) {
 			bestSol = block.Solution
 		}
 
@@ -377,12 +376,26 @@ func (bc *Blockchain) GetBestSolution(pg *ProblemGraph) []int {
 	return bestSol
 }
 
-//Calculate the new target bits
-func (bc *Blockchain) CalculateTarget(height int) *big.Int {
+
+//TimeForReducedBlocks returns the time spent mining block. If reduced is true, returns time sent for blocks at reduced difficulty
+func (bc *Blockchain) TimeForBlocks(from int, to int, reduced bool) int64 {
+
+
+}
+
+
+//CalculateTarget return the new target. If reduced is true, returns the reduced target
+func (bc *Blockchain) CalculateTarget(height int, reduced bool) *big.Int {
 	var prevTarget *big.Int
 	var newTarget *big.Int
+	var tBits int
 	if height < blocksPerTargetUpdate {
-		initialTarget := targetFromTargetBits(initialTargetBits)
+		if reduced {
+			tBits = initialReducedTargetBits
+		} else {
+			tBits = initialTargetBits
+		}
+		initialTarget := targetFromTargetBits(tBits)
 		return initialTarget
 	}
 
@@ -414,18 +427,17 @@ func (bc *Blockchain) CalculateTarget(height int) *big.Int {
 		newTarget = minTarget
 	}
 	
-	return newTarget
-
-			
+	return newTarget			
 }
 
 //Calculate the new target bits
-func (bc *Blockchain) CurrentTarget() *big.Int {
+func (bc *Blockchain) CurrentTarget(reduced bool) *big.Int {
 	bci := bc.Iterator()
 	block := bci.Next()
 	height := block.Height + 1
-	return bc.CalculateTarget(height)
+	return bc.CalculateTarget(height, reduced)
 }
+
 
 // MineBlock mines a new block with the provided transactions
 func (bc *Blockchain) MineBlock(transactions []*Transaction, solHash []byte, solution []int,  pgHash []byte) *Block {
@@ -449,17 +461,24 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction, solHash []byte, sol
 
 		return nil
 	})
+
 	if err != nil {
 		log.Panic(err)
 	}
 
-	newTarget := bc.CalculateTarget(lastHeight+1)
+	newTarget := bc.CalculateTarget(lastHeight+1, false)
+	//if solution is valid, use reduced difficulty
+	if len(solHash) > 0 {
+		pg, err := bc.GetProblemGraphFromHash(pgHash)
+		if err == nil {
+			bestSol := bc.GetBestSolution(&pg, lastHeight)
+			if (len(solution) > len(bestSol)) && pg.ValidateClique(solution) {
+				newTarget = bc.CalculateTarget(lastHeight+1, true)
+			}
+		}
+	}
+	
 	newBlock := NewBlock(transactions, lastHash, lastHeight+1, newTarget, solHash, solution, pgHash)
-	pow := NewProofOfWork(newBlock)
-	nonce, hash := pow.Run()
-
-	newBlock.Hash = hash[:]
-	newBlock.Nonce = nonce
 
 	err = bc.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))

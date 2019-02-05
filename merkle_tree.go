@@ -24,20 +24,33 @@ func NewMerkleTree(data [][]byte) *MerkleTree {
 	}
 
 	for _, datum := range data {
-		node := NewMerkleNode(nil, nil, datum)
-		nodes = append(nodes, *node)
+		mNode := NewMerkleNode(nil, nil, datum)
+		nodes = append(nodes, *mNode)
 	}
 
-	for i := 0; i < len(data)/2; i++ {
-		var newLevel []MerkleNode
-
-		for j := 0; j < len(nodes); j += 2 {
-			node := NewMerkleNode(&nodes[j], &nodes[j+1], nil)
-			newLevel = append(newLevel, *node)
-		}
-
-		nodes = newLevel
+	TreeNode: 
+	for { 
+		var newLevel []MerkleNode 
+		for j := 0; j < len(nodes); j += 2 { 
+			if len(nodes) == 1 { 
+				break TreeNode 
+			} 
+			node := NewMerkleNode(&nodes[j], &nodes[j+1], nil) 
+			newLevel = append(newLevel, *node) 
+		} 
+	nodes = newLevel
 	}
+
+	// for i := 0; i < len(data)/2; i++ {
+	// 	var newLevel []MerkleNode
+
+	// 	for j := 0; j < len(nodes); j += 2 {
+	// 		node := NewMerkleNode(&nodes[j], &nodes[j+1], nil)
+	// 		newLevel = append(newLevel, *node)
+	// 	}
+
+	// 	nodes = newLevel
+	// }
 
 	mTree := MerkleTree{&nodes[0]}
 

@@ -29,15 +29,20 @@ type Block struct {
 // NewBlock creates and returns Block
 func NewBlock(transactions []*Transaction, prevBlockHash []byte, height int, target *big.Int, solHash []byte, solution []int, pgHash []byte) *Block {
 	block := &Block{time.Now().UnixNano(), transactions, prevBlockHash, []byte{}, 0, height, target, solHash, solution, pgHash}
-	
+	pow := NewProofOfWork(block)
+	nonce, hash := pow.Run()
+
+	block.Hash = hash[:]
+	block.Nonce = nonce
+
 	return block
 }
 
 // NewGenesisBlock creates and returns genesis Block
-func NewGenesisBlock(coinbase *Transaction, pgHash []byte) *Block {
+func NewGenesisBlock(coinbase *Transaction) *Block {
 	target := targetFromTargetBits(initialTargetBits)
 	
-	return NewBlock([]*Transaction{coinbase}, []byte{}, 0, target, []byte{}, []int{}, pgHash)
+	return NewBlock([]*Transaction{coinbase}, []byte{}, 0, target, []byte{}, []int{}, []byte{})
 }
 
 // HashTransactions returns a hash of the transactions in the block
@@ -46,10 +51,27 @@ func (b *Block) HashTransactions() []byte {
 
 	for _, tx := range b.Transactions {
 		transactions = append(transactions, tx.Serialize())
+		//fmt.Println(tx, tx.Serialize(), string(tx.Serialize()), DeserializeTransaction(tx.Serialize()))
 	}
 	mTree := NewMerkleTree(transactions)
 
 	return mTree.RootNode.Data
+}
+
+func (b *Block) HasValidSolution(bc *Blockchain) bool {
+	if len(b.ProblemGraphHash) == 0 {
+		return false
+	}
+	pg, err := bc.GetProblemGraphFromHash(b.ProblemGraphHash)
+	if err != nil {
+		return false
+	}
+	bestSolution := bc.GetBestSolution(&pg, b.Height - 1)
+	if len(b.Solution) <= len(bestSolution) {
+		return false
+	}
+	//verify that solution is valid
+	return pg.ValidateClique(b.Solution)
 }
 
 // Serialize serializes the block
@@ -65,12 +87,13 @@ func (b *Block) Serialize() []byte {
 	return result.Bytes()
 }
 
-func (b *Block) Validate(chainTarget *big.Int) bool {
-
+func (b *Block) Validate(bc *Blockchain) bool {
+	chainTarget := bc.CalculateTarget(b.Height, false)
 //check that the targetBits is correct
 	if b.Target.Cmp(chainTarget) != 0 {
 		return false
 	}
+	//if mined at reduced diff, check that the solution is the best up to block.Height with bc.getbestsolution
 	pow := NewProofOfWork(b)
 	return pow.Validate()
 }
@@ -81,12 +104,12 @@ func (b *Block) NicePrint(bc *Blockchain) {
 	printGreen(fmt.Sprintf("============ Block %d ============\n", b.Height))
 	printBlue(fmt.Sprintf("Hash: %x\n", b.Hash))
 	fmt.Printf("Prev: %x\n", b.PrevBlockHash)
+	fmt.Printf("Target: %078d\n", b.Target)
 	fmt.Printf("Difficulty: %d\n", targetToDifficulty(b.Target))
 	prevBlock, _ := bc.GetBlockFromHash(b.PrevBlockHash)
 	time := (b.Timestamp - prevBlock.Timestamp) / 1e9
 	fmt.Printf("Time: %d seconds\n", time)
-	blockchainTarget := bc.CalculateTarget(b.Height)
-	validBlock := b.Validate(blockchainTarget)
+	validBlock := b.Validate(bc)
 	if validBlock {
 		printGreen(fmt.Sprintf("PoW: %s\n", strconv.FormatBool(validBlock)))
 	} else {
@@ -96,6 +119,12 @@ func (b *Block) NicePrint(bc *Blockchain) {
 	if len(b.SolutionHash) > 0 {
 		printGreen(fmt.Sprintf("Solution to %x: ", b.SolutionHash))
 		fmt.Println(b.Solution)
+		validSol := b.HasValidSolution(bc)
+		if validSol {
+			printGreen(fmt.Sprintf("Valid: %s\n", strconv.FormatBool(validSol)))
+		} else {
+			printRed(fmt.Sprintf("Valid: %s\n", strconv.FormatBool(validSol)))
+		}
 	} else {
 		printRed("No solution\n")
 	}

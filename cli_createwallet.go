@@ -1,6 +1,8 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+)
 
 func (cli *CLI) createWallet(nodeID string) {
 	wallets, _ := NewWallets(nodeID)
@@ -8,4 +10,14 @@ func (cli *CLI) createWallet(nodeID string) {
 	wallets.SaveToFile(nodeID)
 
 	fmt.Printf("Your new address: %s\n", address)
+}
+
+
+func (cli *CLI) quickstart(nodeID string) {
+	wallets, _ := NewWallets(nodeID)
+	address := wallets.CreateWallet()
+	wallets.SaveToFile(nodeID)
+
+	fmt.Printf("Your new address: %s\n", address)
+	cli.createBlockchain(address, nodeID)
 }

@@ -1,9 +1,11 @@
 var verteces = [];
 var allCliques = [];
 var slider;
+var val;
 var w = 1200;
 var h = 800;
 var r = 50;
+
 var textXOffset = 0.15 * r;
 var textYOffset = 0.6 * r;
 var posOffset = 7 * r;
@@ -13,10 +15,11 @@ var colours = ['Coral', 'CornflowerBlue', 'DarkGoldenRod','DarkGreen', 'DarkKhak
 
 function setup() {
     canvas = createCanvas(w, h);
-    frameRate(3);
+    frameRate(4);
     prepareGraph();
     slider = createSlider(0, allCliques.length - 1, 1);
     slider.position(20, h);
+    val = slider.value();
 }
 
 function prepareGraph() {
@@ -43,41 +46,44 @@ function prepareGraph() {
 }
 
 function draw() {
-    clear()
-    idx = slider.value()
-    cl = allCliques[idx];
-    for (var i = 0; i < verteces.length; i++) {
-        //draw vertex
-        verteces[i].color = "white";
-    }
-    for (var j = cl.length - 1; j >= 0; j--) {
-        verteces[cl[j]].color = colours[cl.length];
-    }
-
-    for (var from = 0; from < verteces.length; from++) {
-        for (var j = 0; j < verteces[from].connections.length; j++) {
-            to = verteces[from].connections[j]
-            //draw line between two vertecies
-            var x1 = verteces[from].x;
-            var y1 = verteces[from].y;
-            var x2 = verteces[to].x;
-            var y2 = verteces[to].y;
-            push();
-            if (cl.includes(from) && cl.includes(to)) {
-                strokeWeight(3);
-                stroke(10);
-            } else {
-                stroke(153);
-            }
-            line(x1, y1, x2, y2);
-            pop();
+    if (val != slider.value()) {
+        clear()
+        idx = slider.value()
+        cl = allCliques[idx];
+        for (var i = 0; i < verteces.length; i++) {
+            //draw vertex
+            verteces[i].color = "white";
         }
-    }
+        for (var j = cl.length - 1; j >= 0; j--) {
+            verteces[cl[j]].color = colours[cl.length];
+        }
+
+        for (var from = 0; from < verteces.length; from++) {
+            for (var j = 0; j < verteces[from].connections.length; j++) {
+                to = verteces[from].connections[j]
+                //draw line between two vertecies
+                var x1 = verteces[from].x;
+                var y1 = verteces[from].y;
+                var x2 = verteces[to].x;
+                var y2 = verteces[to].y;
+                push();
+                if (cl.includes(from) && cl.includes(to)) {
+                    strokeWeight(3);
+                    stroke(10);
+                } else {
+                    stroke(153);
+                }
+                line(x1, y1, x2, y2);
+                pop();
+            }
+        }
 
 
-    for (var i = 0; i < verteces.length; i++) {
-        //draw vertex
-        verteces[i].show();
+        for (var i = 0; i < verteces.length; i++) {
+            //draw vertex
+            verteces[i].show();
+        }
+    val = slider.value();
     }
 }
 

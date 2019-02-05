@@ -11,12 +11,20 @@ go run *.go
 
 ## TODO
 
-print problems from hash
-nice print of graphs (maybe w javascript) and current solutions
-extend max clique function to find k-clique instead
 mine with solution
-validate block to verify that given solution is better than any given before
+
 difficulty with solution
+
 parallel mining with channel block to have realistic miners
 
-when propose new problem we can already give initial solution, so that the problem is not too easy at the beginning
+block.validate should check that, if it has a solution (different from the posted problem) that solution is the best
+
+rethink diff update?
+
+maybe add check that graph has no better solution? (if no k+1-clique with current best k-clique is found)
+
+add go get to README
+
+
+## BUGS
+weird bug in genesis: txs hash changes after reload of blockchain, so that genesis pow check fails. the problem is the tx.serialize() that changes after closing the program and reopening it

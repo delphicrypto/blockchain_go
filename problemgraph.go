@@ -89,6 +89,22 @@ func (pg *ProblemGraph) FindKClique(k int) []int {
 	return kClique
 }
 
+//ValidateClique checks that the input is a clique of the graph
+func (pg *ProblemGraph) ValidateClique(clique []int) bool {
+	for _, n := range clique {
+		for _, m := range clique {
+    		if n != m {
+    			if !pg.Graph.RemoveEdge(graph.NI(n), graph.NI(m)) {//return false if the edge is not present
+    				return false
+    			} else {//this is probably not important, since we dont care about this pg instance
+    				pg.Graph.AddEdge(graph.NI(n), graph.NI(m))
+    			}
+    		}
+		}	
+	}
+	return true
+}
+
 //FindClique finds all max-cliques and returns them. This scales exponentially (it's Np complete)
 func (pg *ProblemGraph) FindMaxClique() [][]int {
 	//we check that we have a siple (not loops nor parallels) graph
@@ -130,7 +146,7 @@ func (pg *ProblemGraph) NicePrint(bc *Blockchain) {
 	// 	}
 	// 	fmt.Print("\n")
 	// }
-	bsol := bc.GetBestSolution(pg)
+	bsol := bc.GetBestSolution(pg, bc.GetBestHeight())
 	printYellow(fmt.Sprintf("Best solution: %d-clique:",len(bsol)))
 	fmt.Println(bsol)
 }

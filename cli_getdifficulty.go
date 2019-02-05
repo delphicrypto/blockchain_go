@@ -7,8 +7,12 @@ import (
 func (cli *CLI) getDifficulty(nodeID string) {
 	bc := NewBlockchain(nodeID)
 	defer bc.db.Close()
-	target := bc.CurrentTarget()
+	target := bc.CurrentTarget(false)
 	diff := targetToDifficulty(target)
-	fmt.Printf("Target: %d\r\n", target)
-	fmt.Printf("Difficulty: %d\r\n", diff)
+	rTarget := bc.CurrentTarget(true)
+	rDiff := targetToDifficulty(rTarget)
+	fmt.Printf("Normal  Target: %078d\r\n", target)
+	fmt.Printf("Reduced Target: %078d\r\n", rTarget)
+	fmt.Printf("Normal  Difficulty: %d\r\n", diff)	
+	fmt.Printf("Reduced Difficulty: %d\r\n", rDiff)
 }

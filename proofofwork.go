@@ -27,7 +27,7 @@ func NewProofOfWork(b *Block) *ProofOfWork {
 }
 
 func (pow *ProofOfWork) prepareData(nonce int) []byte {
-	var hashedTxs []byte
+	hashedTxs := []byte{}
 	if len(pow.block.Transactions) > 0 {
 		hashedTxs = pow.block.HashTransactions()
 	}
@@ -43,7 +43,7 @@ func (pow *ProofOfWork) prepareData(nonce int) []byte {
 			pow.block.PrevBlockHash,
 			hashedTxs,
 			IntToHex(pow.block.Timestamp),
-			[]byte(fmt.Sprintf("%x",pow.block.Target)),
+			[]byte(fmt.Sprintf("%x",pow.target)),
 			IntToHex(int64(nonce)),
 			pow.block.SolutionHash,
 			byteSolution,
@@ -66,9 +66,6 @@ func (pow *ProofOfWork) Run() (int, []byte) {
 		data := pow.prepareData(nonce)
 
 		hash = sha256.Sum256(data)
-		// if math.Remainder(float64(nonce), 100000) == 0 {
-		// 	fmt.Printf("\r%x", hash)
-		// }
 		hashInt.SetBytes(hash[:])
 
 		if hashInt.Cmp(pow.target) == -1 {
@@ -90,7 +87,6 @@ func (pow *ProofOfWork) Validate() bool {
 	data := pow.prepareData(pow.block.Nonce)
 	hash := sha256.Sum256(data)
 	hashInt.SetBytes(hash[:])
-
 	isValid := hashInt.Cmp(pow.target) == -1
 	return isValid
 }
