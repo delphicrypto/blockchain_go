@@ -378,10 +378,10 @@ func (bc *Blockchain) GetBestSolution(pg *ProblemGraph, height int) []int {
 
 
 //TimeForReducedBlocks returns the time spent mining block. If reduced is true, returns time sent for blocks at reduced difficulty
-func (bc *Blockchain) TimeForBlocks(from int, to int, reduced bool) int64 {
+// func (bc *Blockchain) TimeForBlocks(from int, to int, reduced bool) int64 {
 
 
-}
+// }
 
 
 //CalculateTarget return the new target. If reduced is true, returns the reduced target

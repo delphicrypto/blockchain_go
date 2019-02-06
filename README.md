@@ -33,8 +33,7 @@ rethink diff update?
 
 maybe add check that graph has no better solution? (if no k+1-clique with current best k-clique is found)
 
-add go get to README
-
+add send problem graphs to server. Or maybe add ipfs implementation of problemgraphs
 
 ## BUGS
 weird bug in genesis: txs hash changes after reload of blockchain, so that genesis pow check fails. the problem is the tx.serialize() that changes after closing the program and reopening it
