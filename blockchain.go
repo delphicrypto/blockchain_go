@@ -22,8 +22,9 @@ const (
 	initialReducedTargetBits = 12
 	maxTargetLength = 78
 	targetBlocksPerMinute = 6
-	secondsPerMinute = 60
-	maxTargetChange = 4
+	nanosecondsPerMinute = 60 * 1e9
+	maxTargetChange = 4.0
+	eta = 0.25
 )
 // Blockchain implements interactions with a DB
 type Blockchain struct {
@@ -377,11 +378,48 @@ func (bc *Blockchain) GetBestSolution(pg *ProblemGraph, height int) []int {
 }
 
 
-//TimeForReducedBlocks returns the time spent mining block. If reduced is true, returns time sent for blocks at reduced difficulty
-// func (bc *Blockchain) TimeForBlocks(from int, to int, reduced bool) int64 {
 
+//GetNumberOfBlocks returns the number of blocks without solution. If reduced is true, returns the number of blocks with solution.
+func (bc *Blockchain) GetNumberOfBlocks(from int, to int, reduced bool) int {
+	n := 0
+	if (from > to) || (to > bc.GetBestHeight()) || (from < 0) {
+		fmt.Println("Invalid parameters.", from, to, bc.GetBestHeight())
+		os.Exit(1)
+	} 
+	for h := to; h >= from; h-- {
+		block, err := bc.GetBlockFromHeight(h)
+		if err != nil {
+			log.Panic(err)
+		}
+		if (block.HasValidSolution(bc) && reduced) ||  (!reduced && !block.HasValidSolution(bc)) {
+			n += 1
+		} 		
+	}
+	return n	
+}
 
-// }
+//TimeForBlocks returns the time spent mining block. If reduced is true, returns time sent for blocks at reduced difficulty
+func (bc *Blockchain) TimeForBlocks(from int, to int, reduced bool) int64 {
+	t := int64(0)
+	if (from > to) || (to > bc.GetBestHeight()) || (from < 0) {
+		fmt.Println("Invalid parameters.", from, to, bc.GetBestHeight())
+		os.Exit(1)
+	} 
+	for h := to; h > from; h-- {
+		block, err := bc.GetBlockFromHeight(h)
+		if err != nil {
+			log.Panic(err)
+		}
+		if (block.HasValidSolution(bc) && reduced) ||  (!reduced && !block.HasValidSolution(bc)) {
+			prevBlock, err := bc.GetBlockFromHeight(h-1)
+			if err != nil {
+				log.Panic(err)
+		}
+			t += block.Timestamp - prevBlock.Timestamp
+		} 		
+	}
+	return t	
+}
 
 
 //CalculateTarget return the new target. If reduced is true, returns the reduced target
@@ -403,38 +441,73 @@ func (bc *Blockchain) CalculateTarget(height int, reduced bool) *big.Int {
 	total := len(hashes)
 	index := ((height-1)/blocksPerTargetUpdate) * blocksPerTargetUpdate //this return only integer part of ratio since i'm divindg two integers
 	baseBlock, _ := bc.GetBlockFromHash(hashes[total -1 - index])//this block is the first block in the batch of blocks we need to calculate difficulty
-
-	if height%blocksPerTargetUpdate != 0 {
-		return baseBlock.Target
+	//This iw rong now
+	rest := height%blocksPerTargetUpdate
+	if rest != 0 {
+		return bc.CalculateTarget(height - rest, reduced)
 	}
 	
 	lastBlock, _ := bc.GetBlockFromHash(hashes[total - 1 - (blocksPerTargetUpdate + index - 1)])//this block is the last block in the batch of blocks we need to calculate difficulty
-	t := baseBlock.Timestamp - lastBlock.Timestamp
-	prevTarget = baseBlock.Target
-	timeTarget := secondsPerMinute * blocksPerTargetUpdate / targetBlocksPerMinute
-	retarget := new(big.Float).SetFloat64(float64(t) / float64(timeTarget))
-	floatTarget := new(big.Float).SetInt(prevTarget)
-	floatNewTarget := new(big.Float).Mul(floatTarget, retarget)
-	result := new(big.Int) 
-	floatNewTarget.Int(result)
-	newTarget = result
-	maxChange := big.NewInt(maxTargetChange)
-	maxTarget := new(big.Int).Mul(prevTarget, maxChange)
-	minTarget := new(big.Int).Div(prevTarget, maxChange)
-	if newTarget.Cmp(maxTarget) == 1 {
-		newTarget = maxTarget
-	} else if newTarget.Cmp(minTarget) == -1 {
-		newTarget = minTarget
+	tReduced := bc.TimeForBlocks(baseBlock.Height, lastBlock.Height, true)
+	tNormal := bc.TimeForBlocks(baseBlock.Height, lastBlock.Height, false)
+	etaStar := float64(tReduced)/float64(tNormal)
+	
+	r := float64(bc.GetNumberOfBlocks(baseBlock.Height, lastBlock.Height, false))/blocksPerTargetUpdate //this is b in the paper
+
+	t := lastBlock.Timestamp - baseBlock.Timestamp
+	
+	prevTarget = bc.CalculateTarget(height - blocksPerTargetUpdate, false)
+	prevDiff := targetToDifficulty(prevTarget)
+
+	timeTarget := nanosecondsPerMinute * blocksPerTargetUpdate / targetBlocksPerMinute
+
+
+	retarget := (r + (1 - r) * etaStar)/(r + (1 - r) * eta) * (float64(timeTarget) / float64(t))
+	if retarget > maxTargetChange {
+		retarget = maxTargetChange
+	} else if retarget < 1.0/maxTargetChange {
+		retarget = 1.0/maxTargetChange
+	}
+
+	floatRetarget := new(big.Float).SetFloat64(retarget)
+	floatDiff := bigIntToBigFloat(prevDiff)
+	
+	newFloatDiff := new(big.Float).Mul(floatDiff, floatRetarget)
+	newDiff := bigFloatToBigInt(newFloatDiff)
+	newTarget = difficultyToTarget(newDiff)
+	
+	verbose := false
+	if verbose {
+		fmt.Printf("eta* = %4f\n", etaStar)
+		fmt.Printf("b = %4f\n", r)
+		fmt.Printf("Rescaling factor: %5f\n", retarget)
+		fmt.Printf("new diff %d\n", newDiff)
+	}
+
+	if !reduced {
+		return newTarget
+	}
+	//calculate reduced newtarget
+	prevTargetReduced := bc.CalculateTarget(height - blocksPerTargetUpdate, true)
+	prevDiffReduced := targetToDifficulty(prevTargetReduced)
+	
+	retargetReduced := eta * retarget - etaStar
+	newDiffReduced := new(big.Int)
+
+	newDiffReduced.Add(prevDiffReduced, bigFloatToBigInt(new(big.Float).Mul(floatDiff, new(big.Float).SetFloat64(retargetReduced))))
+	newTargetReduced := difficultyToTarget(newDiffReduced)
+	
+	if verbose {
+		fmt.Printf("Rescaling factor reduced: %5f\n", retargetReduced)
+		fmt.Printf("new diff reduced %d\n", newDiffReduced)
 	}
 	
-	return newTarget			
+	return newTargetReduced		
 }
 
 //Calculate the new target bits
 func (bc *Blockchain) CurrentTarget(reduced bool) *big.Int {
-	bci := bc.Iterator()
-	block := bci.Next()
-	height := block.Height + 1
+	height := bc.GetBestHeight() + 1
 	return bc.CalculateTarget(height, reduced)
 }
 
@@ -443,6 +516,7 @@ func (bc *Blockchain) CurrentTarget(reduced bool) *big.Int {
 func (bc *Blockchain) MineBlock(transactions []*Transaction, solHash []byte, solution []int,  pgHash []byte) *Block {
 	var lastHash []byte
 	var lastHeight int
+	var target * big.Int
 
 	for _, tx := range transactions {
 		// TODO: ignore transaction if it's not valid
@@ -466,19 +540,19 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction, solHash []byte, sol
 		log.Panic(err)
 	}
 
-	newTarget := bc.CalculateTarget(lastHeight+1, false)
+	target = bc.CalculateTarget(lastHeight+1, false)
 	//if solution is valid, use reduced difficulty
-	if len(solHash) > 0 {
+	if len(solHash) > 0 && !Equal(pgHash, solHash) {
 		pg, err := bc.GetProblemGraphFromHash(pgHash)
 		if err == nil {
 			bestSol := bc.GetBestSolution(&pg, lastHeight)
 			if (len(solution) > len(bestSol)) && pg.ValidateClique(solution) {
-				newTarget = bc.CalculateTarget(lastHeight+1, true)
+				target = bc.CalculateTarget(lastHeight+1, true)
 			}
 		}
 	}
 	
-	newBlock := NewBlock(transactions, lastHash, lastHeight+1, newTarget, solHash, solution, pgHash)
+	newBlock := NewBlock(transactions, lastHash, lastHeight+1, target, solHash, solution, pgHash)
 
 	err = bc.db.Update(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))

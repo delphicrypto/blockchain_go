@@ -62,6 +62,10 @@ func (b *Block) HasValidSolution(bc *Blockchain) bool {
 	if len(b.ProblemGraphHash) == 0 {
 		return false
 	}
+	//check that is not the initial solution posted with the problem
+	if Equal(b.ProblemGraphHash, b.SolutionHash) {
+		return false
+	}
 	pg, err := bc.GetProblemGraphFromHash(b.ProblemGraphHash)
 	if err != nil {
 		return false
@@ -88,12 +92,17 @@ func (b *Block) Serialize() []byte {
 }
 
 func (b *Block) Validate(bc *Blockchain) bool {
-	chainTarget := bc.CalculateTarget(b.Height, false)
-//check that the targetBits is correct
+	var chainTarget *big.Int
+	if b.HasValidSolution(bc) {
+		chainTarget = bc.CalculateTarget(b.Height, true)
+	} else {
+		chainTarget = bc.CalculateTarget(b.Height, false)
+	}
+	
+	//check that the targetBits is correct
 	if b.Target.Cmp(chainTarget) != 0 {
 		return false
 	}
-	//if mined at reduced diff, check that the solution is the best up to block.Height with bc.getbestsolution
 	pow := NewProofOfWork(b)
 	return pow.Validate()
 }

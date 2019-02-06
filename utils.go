@@ -59,6 +59,16 @@ func targetFromTargetBits(targetBits int) *big.Int {
 	return target
 }
 
+func bigFloatToBigInt (f *big.Float) *big.Int {
+	a := new(big.Int) 
+	z, _ := f.Int(a)
+	return z
+}
+
+func bigIntToBigFloat (i *big.Int) *big.Float {
+	return new(big.Float).SetInt(i)
+}
+
 func printGreen(text string) {
 	color.Green(text)
 }
