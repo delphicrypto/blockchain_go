@@ -59,14 +59,14 @@ func (b *Block) HashTransactions() []byte {
 }
 
 func (b *Block) HasValidSolution(bc *Blockchain) bool {
-	if len(b.ProblemGraphHash) == 0 {
+	if len(b.SolutionHash) == 0 {
 		return false
 	}
 	//check that is not the initial solution posted with the problem
 	if Equal(b.ProblemGraphHash, b.SolutionHash) {
 		return false
 	}
-	pg, err := bc.GetProblemGraphFromHash(b.ProblemGraphHash)
+	pg, err := bc.GetProblemGraphFromHash(b.SolutionHash)
 	if err != nil {
 		return false
 	}
@@ -74,6 +74,7 @@ func (b *Block) HasValidSolution(bc *Blockchain) bool {
 	if len(b.Solution) <= len(bestSolution) {
 		return false
 	}
+
 	//verify that solution is valid
 	return pg.ValidateClique(b.Solution)
 }
@@ -130,9 +131,9 @@ func (b *Block) NicePrint(bc *Blockchain) {
 		fmt.Println(b.Solution)
 		validSol := b.HasValidSolution(bc)
 		if validSol {
-			printGreen(fmt.Sprintf("Valid: %s\n", strconv.FormatBool(validSol)))
+			printGreen("Valid Solution\n")
 		} else {
-			printRed(fmt.Sprintf("Valid: %s\n", strconv.FormatBool(validSol)))
+			printRed("Not Valid\n")
 		}
 	} else {
 		printRed("No solution\n")

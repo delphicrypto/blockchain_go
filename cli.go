@@ -30,6 +30,7 @@ func (cli *CLI) printUsage() {
 	fmt.Println("  startnode -miner ADDRESS - Start a node with ID specified in NODE_ID env. var. -miner enables mining")
 	fmt.Println("  mineblock N- Mine N blocks with empty transactions. Default is 1")
 	fmt.Println("  mineblockprob NODES DENSITY- Mine 1 block with empty transactions and NODES nodes and DENSITY density")
+	fmt.Println("  mineblocksol HASH -  Mine 1 block with empty transactions and a solution to problem HASH")
 	fmt.Println("  getdiff - Display current difficulty")
 	fmt.Println("  creategraph - Create a new problem graph, with default 50 nodes and 620 edges")
 	
@@ -148,7 +149,7 @@ func (cli *CLI) Run() {
 					}
 				}
 				for i := 0; i < n; i++ {
-					cli.mineblock(nodeID, false, 0, 0)
+					cli.mineblock(nodeID)
 				}
 			case "mineblockprob":
 				if len(commands) == 3 {
@@ -158,12 +159,20 @@ func (cli *CLI) Run() {
 						fmt.Println("Invalid arguments.")
 						fmt.Println("  mineblockprob NODES DENSITY- Mine 1 block with empty transactions and NODES nodes and DENSITY density")
 					} else {
-						cli.mineblock(nodeID, true, nodes, density)
+						cli.mineblockWithNewProblem(nodeID, nodes, density)
 					}
 				} else {
 					fmt.Println("Invalid arguments.")
 					fmt.Println("  mineblockprob NODES DENSITY- Mine 1 block with empty transactions and NODES nodes and DENSITY density")
 				}
+			case "mineblocksol":
+				if len(commands) > 1 {
+					pgHash := commands[1]
+					cli.mineblockWithSolution(nodeID, pgHash)
+				 } else {
+				 	fmt.Println("mineblocksol HASH -  Mine 1 block with empty transactions and a solution to problem HASH")
+				 	fmt.Println("Missing argument HASH")
+				 }
 				
 			default:
 				fmt.Println("Invalid option.")

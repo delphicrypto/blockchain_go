@@ -543,7 +543,7 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction, solHash []byte, sol
 	target = bc.CalculateTarget(lastHeight+1, false)
 	//if solution is valid, use reduced difficulty
 	if len(solHash) > 0 && !Equal(pgHash, solHash) {
-		pg, err := bc.GetProblemGraphFromHash(pgHash)
+		pg, err := bc.GetProblemGraphFromHash(solHash)
 		if err == nil {
 			bestSol := bc.GetBestSolution(&pg, lastHeight)
 			if (len(solution) > len(bestSol)) && pg.ValidateClique(solution) {
