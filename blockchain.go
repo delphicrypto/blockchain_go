@@ -26,6 +26,14 @@ const (
 	maxTargetChange = 4.0
 	eta = 0.25
 )
+
+var targetTable = map[int]map[string]*big.Int{
+	0 : map[string]*big.Int{
+		"normal" : targetFromTargetBits(initialTargetBits),
+		"reduced": targetFromTargetBits(initialReducedTargetBits),
+	},
+}
+
 // Blockchain implements interactions with a DB
 type Blockchain struct {
 	tip []byte
@@ -447,16 +455,25 @@ func (bc *Blockchain) TimeForBlocks(from int, to int, reduced bool) int64 {
 func (bc *Blockchain) CalculateTarget(height int, reduced bool) *big.Int {
 	var prevTarget *big.Int
 	var newTarget *big.Int
-	var tBits int
-	if height < blocksPerTargetUpdate {
+	//var tBits int
+
+	base := height/blocksPerTargetUpdate
+	if val, ok := targetTable[base]; ok {
 		if reduced {
-			tBits = initialReducedTargetBits
-		} else {
-			tBits = initialTargetBits
+			return val["reduced"] 
 		}
-		initialTarget := targetFromTargetBits(tBits)
-		return initialTarget
+	    return val["normal"] 
 	}
+
+	// if height < blocksPerTargetUpdate {
+	// 	if reduced {
+	// 		tBits = initialReducedTargetBits
+	// 	} else {
+	// 		tBits = initialTargetBits
+	// 	}
+	// 	initialTarget := targetFromTargetBits(tBits)
+	// 	return initialTarget
+	// }
 
 	hashes := bc.GetBlockHashes()
 	total := len(hashes)
@@ -498,9 +515,7 @@ func (bc *Blockchain) CalculateTarget(height int, reduced bool) *big.Int {
 	newTarget = difficultyToTarget(newDiff)
 	
 
-	if !reduced {
-		return newTarget
-	}
+	
 	//calculate reduced newtarget
 	prevTargetReduced := bc.CalculateTarget(height - blocksPerTargetUpdate, true)
 	prevDiffReduced := targetToDifficulty(prevTargetReduced)
@@ -527,7 +542,12 @@ func (bc *Blockchain) CalculateTarget(height int, reduced bool) *big.Int {
 		fmt.Printf("Rescaling factor reduced: %5f\n", retargetReduced)
 		fmt.Printf("new diff reduced %d\n", newDiffReduced)
 	}
-	
+	targetTable[base] = map[string]*big.Int{}
+	targetTable[base]["normal"] = newTarget
+	targetTable[base]["reduced"] = newTargetReduced
+	if !reduced {
+		return newTarget
+	}
 	return newTargetReduced		
 }
 
