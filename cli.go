@@ -48,7 +48,6 @@ func (cli *CLI) Run() {
 		fmt.Printf("NODE_ID env. var is not set!")
 		os.Exit(1)
 	}
-
 	stdReader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("\n> ")
@@ -149,7 +148,10 @@ func (cli *CLI) Run() {
 					}
 				}
 				for i := 0; i < n; i++ {
-					cli.mineblock(nodeID)
+					block := cli.mineblock(nodeID)
+					bc := NewBlockchain(nodeID)
+					bc.AddBlock(block)
+					bc.db.Close()
 				}
 			case "mineblockprob":
 				if len(commands) == 3 {
@@ -159,7 +161,10 @@ func (cli *CLI) Run() {
 						fmt.Println("Invalid arguments.")
 						fmt.Println("  mineblockprob NODES DENSITY- Mine 1 block with empty transactions and NODES nodes and DENSITY density")
 					} else {
-						cli.mineblockWithNewProblem(nodeID, nodes, density)
+						block :=  cli.mineblockWithNewProblem(nodeID, nodes, density)
+						bc := NewBlockchain(nodeID)
+						bc.AddBlock(block)
+						bc.db.Close()
 					}
 				} else {
 					fmt.Println("Invalid arguments.")
@@ -168,7 +173,21 @@ func (cli *CLI) Run() {
 			case "mineblocksol":
 				if len(commands) > 1 {
 					pgHash := commands[1]
-					cli.mineblockWithSolution(nodeID, pgHash)
+					block := cli.mineblockWithSolution(nodeID, pgHash)
+					bc := NewBlockchain(nodeID)
+					bc.AddBlock(block)
+					bc.db.Close()
+				 } else {
+				 	fmt.Println("mineblocksol HASH -  Mine 1 block with empty transactions and a solution to problem HASH")
+				 	fmt.Println("Missing argument HASH")
+				 }
+			case "minepar":
+				if len(commands) > 1 {
+					pgHash := commands[1]
+					block := cli.mineblockParallel(nodeID, pgHash)
+					bc := NewBlockchain(nodeID)
+					bc.AddBlock(block)
+					bc.db.Close()
 				 } else {
 				 	fmt.Println("mineblocksol HASH -  Mine 1 block with empty transactions and a solution to problem HASH")
 				 	fmt.Println("Missing argument HASH")

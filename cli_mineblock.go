@@ -6,16 +6,18 @@ import (
 	"log"
 )
 
-func (cli *CLI) mineblock(nodeID string) {
+func (cli *CLI) mineblock(nodeID string) *Block {
 	bc := NewBlockchain(nodeID)
 	defer bc.db.Close()
 	var txs []*Transaction
 	
 	newBlock := bc.MineBlock(txs, []byte{}, []int{}, []byte{})
+	fmt.Println("Block mined classically")
 	fmt.Printf("New block hash: %x\r\n", newBlock.Hash)
+	return newBlock
 }
 
-func (cli *CLI) mineblockWithNewProblem(nodeID string, nodes int, density float64) {
+func (cli *CLI) mineblockWithNewProblem(nodeID string, nodes int, density float64) *Block {
 	bc := NewBlockchain(nodeID)
 	defer bc.db.Close()
 
@@ -32,13 +34,14 @@ func (cli *CLI) mineblockWithNewProblem(nodeID string, nodes int, density float6
 	}
 	
 	var txs []*Transaction
-	
-	
 	newBlock := bc.MineBlock(txs, pg.Hash, kclique, pg.Hash)
+
+	fmt.Println("Block mined with problem")
 	fmt.Printf("New block hash: %x\r\n", newBlock.Hash)
+	return newBlock
 }
 
-func (cli *CLI) mineblockWithSolution(nodeID string, pgHash string) {
+func (cli *CLI) mineblockWithSolution(nodeID string, pgHash string) *Block {
 	bc := NewBlockchain(nodeID)
 	defer bc.db.Close()
 	
@@ -60,5 +63,23 @@ func (cli *CLI) mineblockWithSolution(nodeID string, pgHash string) {
 	var txs []*Transaction
 
 	newBlock := bc.MineBlock(txs, hash, kclique, []byte{})
+	fmt.Println("Block mined with solution")
 	fmt.Printf("New block hash: %x\r\n", newBlock.Hash)
+	return newBlock
+}
+
+func (cli *CLI) mineblockParallel(nodeID string, pgHash string) *Block {
+	blockChannel := make(chan *Block, 1)
+	
+	go func() {
+        blockChannel <- cli.mineblock(nodeID)
+    }()
+    go func() {
+        blockChannel <- cli.mineblockWithSolution(nodeID, pgHash)
+    }()
+    select {
+	    case block := <-blockChannel:
+			//close(blockChannel)
+			return block
+	}
 }

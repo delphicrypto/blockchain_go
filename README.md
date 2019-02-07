@@ -20,14 +20,7 @@ go run *.go
 
 
 ## TODO
-
-mine with solution
-
-difficulty with solution
-
-parallel mining with channel block to have realistic miners
-
-block.validate should check that, if it has a solution (different from the posted problem) that solution is the best
+add a lookup table for the difficulties, because calculateTarget now tales a lot of time
 
 rethink diff update?
 

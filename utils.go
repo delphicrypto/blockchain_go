@@ -124,19 +124,12 @@ func ProblemToString(pg ProblemGraph) string {
 	return text
 }
 
-func CliquesToString(k string, cliques [][]int) string {
-	text := k +" : ["
-	for j, c := range cliques {
-		text += "[ "
-		for i, n := range c {
-			text += strconv.Itoa(n)
-			if i < len(c) - 1{
-				text += ", "
-			}
-		}
-		text += "]"
-		if j < len(cliques) - 1{
-				text += ",\n "
+func CliqueToString(clique []int) string {
+	text := "[ "
+	for i, n := range clique {
+		text += strconv.Itoa(n)
+		if i < len(clique) - 1{
+			text += ", "
 		}
 	}
 	text += "]"

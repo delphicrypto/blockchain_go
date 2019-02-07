@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"strconv"
 	"encoding/hex"
 )
 
@@ -37,16 +36,17 @@ func (cli *CLI) printProblemGraph(nodeID string, hash string) {
 		text := ProblemToString(pg)
 		filename := "jsgraph/data/graph.js"
 		WriteToFile(filename, text)
-		maxK := 6
-		textsol := "var cliques = {"
-		for k := 3; k <= maxK; k++ {
-			kCliques := pg.FindAllKCliques(k)
-			textsol += CliquesToString(strconv.Itoa(k), kCliques)
-			if k < maxK {
+		textsol := "var cliques = ["
+
+		allSolutions := bc.GetAllSolutions(&pg)
+		for i, s := range allSolutions {
+			textsol += CliqueToString(s)
+			if i < len(allSolutions) - 1{
 				textsol += ",\n "
 			}
 		}
-		textsol += "};\n"
+
+		textsol += "];\n"
 		filenamesol := "jsgraph/data/sol.js"
 		WriteToFile(filenamesol, textsol)
 	} else {

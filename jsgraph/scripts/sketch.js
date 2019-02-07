@@ -4,7 +4,7 @@ var slider;
 var val;
 var w = 1200;
 var h = 800;
-var r = 50;
+var r = 5;
 
 var textXOffset = 0.15 * r;
 var textYOffset = 0.6 * r;
@@ -17,7 +17,7 @@ function setup() {
     canvas = createCanvas(w, h);
     frameRate(4);
     prepareGraph();
-    slider = createSlider(0, allCliques.length - 1, 1);
+    slider = createSlider(0, cliques.length - 1, 1);
     slider.position(20, h);
     val = slider.value();
 }
@@ -26,14 +26,14 @@ function prepareGraph() {
     canvas.background(255);
     canvas.fill(255);
 
-    for (var key in cliques) {
-        cliqueText = createElement('h2', "There are " + cliques[key].length + " " + key + "-cliques");
-        cliqueText.position(30, 10 + 30 * int(key));
-        for (var i = 0; i < cliques[key].length; i++) {
-            allCliques.push(cliques[key][i]);
-        }
+    // for (var key in cliques) {
+    //     cliqueText = createElement('h2', "There are " + cliques[key].length + " " + key + "-cliques");
+    //     cliqueText.position(30, 10 + 30 * int(key));
+    //     for (var i = 0; i < cliques[key].length; i++) {
+    //         allCliques.push(cliques[key][i]);
+    //     }
         
-    }
+    // }
     verteces = [];
     for (var key in graphdata) {
         node = graphdata[key];
@@ -49,7 +49,7 @@ function draw() {
     if (val != slider.value()) {
         clear()
         idx = slider.value()
-        cl = allCliques[idx];
+        cl = cliques[idx];
         for (var i = 0; i < verteces.length; i++) {
             //draw vertex
             verteces[i].color = "white";

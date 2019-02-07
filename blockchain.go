@@ -359,6 +359,27 @@ func (bc *Blockchain) GetProblemGraphHashes() [][]byte {
 	return problems
 }
 
+
+
+
+// GetAllSolutions returns the all solutions found in the blockchain for the given problemgraph
+func (bc *Blockchain) GetAllSolutions(pg *ProblemGraph) [][]int {
+	bci := bc.Iterator()
+	allSolutions := [][]int{}
+	for {
+		block := bci.Next()
+		if Equal(block.SolutionHash, pg.Hash) {
+			allSolutions = append(allSolutions, block.Solution)
+		}
+
+		if len(block.PrevBlockHash) == 0 {
+			break
+		}
+	}
+
+	return allSolutions
+}
+
 // GetBestSolution returns the best solution found in the blockchain for the given problemgraph
 func (bc *Blockchain) GetBestSolution(pg *ProblemGraph, height int) []int {
 	bci := bc.Iterator()
@@ -476,13 +497,6 @@ func (bc *Blockchain) CalculateTarget(height int, reduced bool) *big.Int {
 	newDiff := bigFloatToBigInt(newFloatDiff)
 	newTarget = difficultyToTarget(newDiff)
 	
-	verbose := false
-	if verbose {
-		fmt.Printf("eta* = %4f\n", etaStar)
-		fmt.Printf("b = %4f\n", r)
-		fmt.Printf("Rescaling factor: %5f\n", retarget)
-		fmt.Printf("new diff %d\n", newDiff)
-	}
 
 	if !reduced {
 		return newTarget
@@ -492,12 +506,24 @@ func (bc *Blockchain) CalculateTarget(height int, reduced bool) *big.Int {
 	prevDiffReduced := targetToDifficulty(prevTargetReduced)
 	
 	retargetReduced := eta * retarget - etaStar
+	if retargetReduced > maxTargetChange {
+		retargetReduced = maxTargetChange
+	} else if retargetReduced < 1.0/maxTargetChange {
+		retargetReduced = 1.0/maxTargetChange
+	}
+
+
 	newDiffReduced := new(big.Int)
 
 	newDiffReduced.Add(prevDiffReduced, bigFloatToBigInt(new(big.Float).Mul(floatDiff, new(big.Float).SetFloat64(retargetReduced))))
 	newTargetReduced := difficultyToTarget(newDiffReduced)
 	
+	verbose := false
 	if verbose {
+		fmt.Printf("eta* = %4f\n", etaStar)
+		fmt.Printf("b = %4f\n", r)
+		fmt.Printf("Rescaling factor: %5f\n", retarget)
+		fmt.Printf("new diff %d\n", newDiff)
 		fmt.Printf("Rescaling factor reduced: %5f\n", retargetReduced)
 		fmt.Printf("new diff reduced %d\n", newDiffReduced)
 	}
@@ -554,28 +580,9 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction, solHash []byte, sol
 	
 	newBlock := NewBlock(transactions, lastHash, lastHeight+1, target, solHash, solution, pgHash)
 
-	err = bc.db.Update(func(tx *bolt.Tx) error {
-		b := tx.Bucket([]byte(blocksBucket))
-		err := b.Put(newBlock.Hash, newBlock.Serialize())
-		if err != nil {
-			log.Panic(err)
-		}
-
-		err = b.Put([]byte("l"), newBlock.Hash)
-		if err != nil {
-			log.Panic(err)
-		}
-
-		bc.tip = newBlock.Hash
-
-		return nil
-	})
-	if err != nil {
-		log.Panic(err)
-	}
-
 	return newBlock
 }
+
 
 // SignTransaction signs inputs of a Transaction
 func (bc *Blockchain) SignTransaction(tx *Transaction, privKey ecdsa.PrivateKey) {
