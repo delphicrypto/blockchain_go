@@ -1,4 +1,4 @@
-package main
+package crickchain
 
 
 func (cli *CLI) printHeight(nodeID string, height int) {

@@ -1,8 +1,7 @@
-package main
+package crickchain
 
 import (
 	"log"
-
 	"github.com/boltdb/bolt"
 )
 

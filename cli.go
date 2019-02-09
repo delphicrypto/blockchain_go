@@ -1,4 +1,4 @@
-package main
+package crickchain
 
 import (
 	"strings"
@@ -7,7 +7,7 @@ import (
 	"os"
 	"bufio"
 	"strconv"
-	//"github.com/joho/godotenv"
+	
 )
 
 // CLI responsible for processing command line arguments
