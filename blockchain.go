@@ -41,11 +41,10 @@ type Blockchain struct {
 }
 
 // CreateBlockchain creates a new blockchain DB
-func CreateBlockchain(address, nodeID string) *Blockchain {
-	dbFile := fmt.Sprintf(dbFile, nodeID)
-	if dbExists(dbFile) {
+func CreateBlockchain(address, filename string) *Blockchain {
+	if dbExists(filename) {
 		fmt.Println("Blockchain already exists.")
-		bc := NewBlockchain(nodeID)
+		bc := NewBlockchain(filename)
 		return bc
 	}
 
@@ -55,11 +54,10 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 	//pg := NewProblemGraph(20, 85)//remember to add it to the blockchain db at the end!
 	genesis := NewGenesisBlock(cbtx)
 	
-	db, err := bolt.Open(dbFile, 0600, nil)
+	db, err := bolt.Open(filename, 0600, nil)
 	if err != nil {
 		log.Panic(err)
 	}
-	
 	err = db.Update(func(tx *bolt.Tx) error {
 		b, err := tx.CreateBucket([]byte(blocksBucket))
 		if err != nil {
@@ -98,15 +96,14 @@ func CreateBlockchain(address, nodeID string) *Blockchain {
 }
 
 // NewBlockchain creates a new Blockchain with genesis Block
-func NewBlockchain(nodeID string) *Blockchain {
-	dbFile := fmt.Sprintf(dbFile, nodeID)
-	if dbExists(dbFile) == false {
+func NewBlockchain(filename string) *Blockchain {
+	if dbExists(filename) == false {
 		fmt.Println("No existing blockchain found. Create one first.")
 		os.Exit(1)
 	}
 
 	var tip []byte
-	db, err := bolt.Open(dbFile, 0600, nil)
+	db, err := bolt.Open(filename, 0600, nil)
 	if err != nil {
 		log.Panic(err)
 	}
@@ -124,6 +121,11 @@ func NewBlockchain(nodeID string) *Blockchain {
 	bc := Blockchain{tip, db}
 
 	return &bc
+}
+
+//CloseDB exposes the close database function
+func (bc *Blockchain) CloseDB() {
+	bc.db.Close()
 }
 
 // AddBlock saves the block into the blockchain

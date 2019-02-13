@@ -4,20 +4,20 @@ import (
 	"fmt"
 )
 
-func (cli *CLI) createWallet(nodeID string) {
-	wallets, _ := NewWallets(nodeID)
+func (cli *CLI) createWallet(dbFile string) {
+	wallets, _ := NewWallets(dbFile)
 	address := wallets.CreateWallet()
-	wallets.SaveToFile(nodeID)
+	wallets.SaveToFile(dbFile)
 
 	fmt.Printf("Your new address: %s\n", address)
 }
 
 
-func (cli *CLI) quickstart(nodeID string) {
-	wallets, _ := NewWallets(nodeID)
+func (cli *CLI) quickstart(dbFile, walletFile string) {
+	wallets, _ := NewWallets(walletFile)
 	address := wallets.CreateWallet()
-	wallets.SaveToFile(nodeID)
+	wallets.SaveToFile(walletFile)
 
 	fmt.Printf("Your new address: %s\n", address)
-	cli.createBlockchain(address, nodeID)
+	cli.createBlockchain(address, dbFile)
 }

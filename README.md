@@ -13,11 +13,12 @@ go get github.com/fatih/color
 
 ## Launch
 
+From the main foler:
 ```
 export NODE_ID=3000
-go run *.go
+go run main.go
 ```
-
+To quickly generate a wallet and a blockchain use the command `qs`.
 
 ## TODO
 add a lookup table for the difficulties, because calculateTarget now tales a lot of time

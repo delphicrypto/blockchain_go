@@ -5,12 +5,12 @@ import (
 	"log"
 )
 
-func (cli *CLI) getAllBalances(nodeID string) {
-	bc := NewBlockchain(nodeID)
+func (cli *CLI) getAllBalances(dbFile, walletFile string) {
+	bc := NewBlockchain(dbFile)
 	UTXOSet := UTXOSet{bc}
 	defer bc.db.Close()
 
-	wallets, err := NewWallets(nodeID)
+	wallets, err := NewWallets(walletFile)
 	if err != nil {
 		log.Panic(err)
 	}

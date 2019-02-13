@@ -18,11 +18,11 @@ type Wallets struct {
 }
 
 // NewWallets creates Wallets and fills it from a file if it exists
-func NewWallets(nodeID string) (*Wallets, error) {
+func NewWallets(walletFile string) (*Wallets, error) {
 	wallets := Wallets{}
 	wallets.Wallets = make(map[string]*Wallet)
 
-	err := wallets.LoadFromFile(nodeID)
+	err := wallets.LoadFromFile(walletFile)
 
 	return &wallets, err
 }
@@ -54,8 +54,7 @@ func (ws Wallets) GetWallet(address string) Wallet {
 }
 
 // LoadFromFile loads wallets from the file
-func (ws *Wallets) LoadFromFile(nodeID string) error {
-	walletFile := fmt.Sprintf(walletFile, nodeID)
+func (ws *Wallets) LoadFromFile(walletFile string) error {
 	if _, err := os.Stat(walletFile); os.IsNotExist(err) {
 		return err
 	}
@@ -79,9 +78,8 @@ func (ws *Wallets) LoadFromFile(nodeID string) error {
 }
 
 // SaveToFile saves wallets to a file
-func (ws Wallets) SaveToFile(nodeID string) {
+func (ws Wallets) SaveToFile(walletFile string) {
 	var content bytes.Buffer
-	walletFile := fmt.Sprintf(walletFile, nodeID)
 
 	gob.Register(elliptic.P256())
 

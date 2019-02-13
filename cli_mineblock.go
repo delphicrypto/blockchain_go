@@ -6,8 +6,8 @@ import (
 	"log"
 )
 
-func (cli *CLI) mineblock(nodeID string) *Block {
-	bc := NewBlockchain(nodeID)
+func (cli *CLI) mineblock(dbFile string) *Block {
+	bc := NewBlockchain(dbFile)
 	defer bc.db.Close()
 	var txs []*Transaction
 	
@@ -17,8 +17,8 @@ func (cli *CLI) mineblock(nodeID string) *Block {
 	return newBlock
 }
 
-func (cli *CLI) mineblockWithNewProblem(nodeID string, nodes int, density float64) *Block {
-	bc := NewBlockchain(nodeID)
+func (cli *CLI) mineblockWithNewProblem(dbFile string, nodes int, density float64) *Block {
+	bc := NewBlockchain(dbFile)
 	defer bc.db.Close()
 
 	kclique := []int{}
@@ -41,8 +41,8 @@ func (cli *CLI) mineblockWithNewProblem(nodeID string, nodes int, density float6
 	return newBlock
 }
 
-func (cli *CLI) mineblockWithSolution(nodeID string, pgHash string) *Block {
-	bc := NewBlockchain(nodeID)
+func (cli *CLI) mineblockWithSolution(dbFile string, pgHash string) *Block {
+	bc := NewBlockchain(dbFile)
 	defer bc.db.Close()
 	
 	hash, err := hex.DecodeString(pgHash)
@@ -68,14 +68,14 @@ func (cli *CLI) mineblockWithSolution(nodeID string, pgHash string) *Block {
 	return newBlock
 }
 
-func (cli *CLI) mineblockParallel(nodeID string, pgHash string) *Block {
+func (cli *CLI) mineblockParallel(dbFile string, pgHash string) *Block {
 	blockChannel := make(chan *Block, 1)
 	
 	go func() {
-        blockChannel <- cli.mineblock(nodeID)
+        blockChannel <- cli.mineblock(dbFile)
     }()
     go func() {
-        blockChannel <- cli.mineblockWithSolution(nodeID, pgHash)
+        blockChannel <- cli.mineblockWithSolution(dbFile, pgHash)
     }()
     select {
 	    case block := <-blockChannel:

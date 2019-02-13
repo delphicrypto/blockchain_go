@@ -5,8 +5,8 @@ import (
 	"encoding/hex"
 )
 
-func (cli *CLI) printProblemGraphs(nodeID string) {
-	bc := NewBlockchain(nodeID)
+func (cli *CLI) printProblemGraphs(dbFile string) {
+	bc := NewBlockchain(dbFile)
 	defer bc.db.Close()
 
 	hashes := bc.GetProblemGraphHashes()
@@ -22,8 +22,8 @@ func (cli *CLI) printProblemGraphs(nodeID string) {
 	}	
 }
 
-func (cli *CLI) printProblemGraph(nodeID string, hash string) {
-	bc := NewBlockchain(nodeID)
+func (cli *CLI) printProblemGraph(dbFile string, hash string) {
+	bc := NewBlockchain(dbFile)
 	defer bc.db.Close()
 
 	h, err := hex.DecodeString(hash)
@@ -34,8 +34,8 @@ func (cli *CLI) printProblemGraph(nodeID string, hash string) {
 	if err == nil {
 		pg.NicePrint(bc)
 		text := ProblemToString(pg)
-		filename := "jsgraph/data/graph.js"
-		WriteToFile(filename, text)
+		dbFile := "jsgraph/data/graph.js"
+		WriteToFile(dbFile, text)
 		textsol := "var cliques = ["
 
 		allSolutions := bc.GetAllSolutions(&pg)
@@ -47,8 +47,8 @@ func (cli *CLI) printProblemGraph(nodeID string, hash string) {
 		}
 
 		textsol += "];\n"
-		filenamesol := "jsgraph/data/sol.js"
-		WriteToFile(filenamesol, textsol)
+		dbFilesol := "jsgraph/data/sol.js"
+		WriteToFile(dbFilesol, textsol)
 	} else {
 		fmt.Println(err)
 	}

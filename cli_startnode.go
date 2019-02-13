@@ -5,8 +5,8 @@ import (
 	"log"
 )
 
-func (cli *CLI) startNode(nodeID, minerAddress string) {
-	fmt.Printf("Starting node %s\n", nodeID)
+func (cli *CLI) startNode(nodeID string, dbFile string, minerAddress string) {
+	fmt.Printf("Starting node %s\n", dbFile)
 	if len(minerAddress) > 0 {
 		if ValidateAddress(minerAddress) {
 			fmt.Println("Mining is on. Address to receive rewards: ", minerAddress)
@@ -14,5 +14,5 @@ func (cli *CLI) startNode(nodeID, minerAddress string) {
 			log.Panic("Wrong miner address!")
 		}
 	}
-	StartServer(nodeID, minerAddress)
+	StartServer(nodeID, dbFile, minerAddress)
 }

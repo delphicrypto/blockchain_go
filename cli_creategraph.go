@@ -1,8 +1,8 @@
 package crickchain
 
 
-func (cli *CLI) createGraph(nodeID string, nodes int, edges int) {
-	bc := NewBlockchain(nodeID)
+func (cli *CLI) createGraph(dbFile string, nodes int, edges int) {
+	bc := NewBlockchain(dbFile)
 	defer bc.db.Close()
 
 	pg := NewProblemGraph(nodes, edges)

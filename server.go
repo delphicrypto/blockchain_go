@@ -418,7 +418,7 @@ func handleConnection(conn net.Conn, bc *Blockchain) {
 }
 
 // StartServer starts a node
-func StartServer(nodeID, minerAddress string) {
+func StartServer(nodeID string, dbFile string, minerAddress string) {
 	nodeAddress = fmt.Sprintf("localhost:%s", nodeID)
 	miningAddress = minerAddress
 	ln, err := net.Listen(protocol, nodeAddress)
@@ -427,7 +427,7 @@ func StartServer(nodeID, minerAddress string) {
 	}
 	defer ln.Close()
 
-	bc := NewBlockchain(nodeID)
+	bc := NewBlockchain(dbFile)
 
 	if nodeAddress != knownNodes[0] {
 		sendVersion(knownNodes[0], bc)

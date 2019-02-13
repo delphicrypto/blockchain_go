@@ -48,6 +48,8 @@ func (cli *CLI) Run() {
 		fmt.Printf("NODE_ID env. var is not set!")
 		os.Exit(1)
 	}
+	dbFile := fmt.Sprintf(dbFile, nodeID)
+	walletFile := fmt.Sprintf(walletFile, nodeID)
 	stdReader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("\n> ")
@@ -62,31 +64,31 @@ func (cli *CLI) Run() {
 		command := strings.ToLower(commands[0])
 		switch command {
 			case "printchain":
-				cli.printChain(nodeID)
+				cli.printChain(dbFile)
 			case "printlast":
-				cli.printLast(nodeID)
+				cli.printLast(dbFile)
 			case "q", "quit":
 				os.Exit(1)
 			case "qs":
-				cli.quickstart(nodeID)
+				cli.quickstart(dbFile, walletFile)
 			case "createwallet":
-				cli.createWallet(nodeID)
+				cli.createWallet(walletFile)
 			case "listaddresses":
-				cli.listAddresses(nodeID)
+				cli.listAddresses(dbFile)
 			case "reindexutxo":
-				cli.reindexUTXO(nodeID)
+				cli.reindexUTXO(dbFile)
 			case "getbalances":
-				cli.getAllBalances(nodeID)
+				cli.getAllBalances(dbFile, walletFile)
 			case "getdiff":
-				cli.getDifficulty(nodeID)
+				cli.getDifficulty(dbFile)
 			case "creategraph":
-				cli.createGraph(nodeID, 500, 110000)
+				cli.createGraph(dbFile, 500, 110000)
 			case "printproblems":
-				cli.printProblemGraphs(nodeID)	
+				cli.printProblemGraphs(dbFile)	
 			case "getbalance":
 				if len(commands) > 1 {
 					address := commands[1]
-					cli.getBalance(address, nodeID)
+					cli.getBalance(address, dbFile)
 				 } else {
 				 	fmt.Println("getbalance ADDRESS - Get balance of ADDRESS")
 				 	fmt.Println("Missing argument ADDRESS")
@@ -94,7 +96,7 @@ func (cli *CLI) Run() {
 			case "printproblem":
 				if len(commands) > 1 {
 					hash := commands[1]
-					cli.printProblemGraph(nodeID, hash)
+					cli.printProblemGraph(dbFile, hash)
 				 } else {
 				 	fmt.Println("printproblem HASH - Display problem with hash HASH")
 				 	fmt.Println("Missing argument HASH")
@@ -102,7 +104,7 @@ func (cli *CLI) Run() {
 			case "printblock":
 				if len(commands) > 1 {
 					height,_ := strconv.Atoi(commands[1])
-					cli.printHeight(nodeID, height)
+					cli.printHeight(dbFile, height)
 				 } else {
 				 	fmt.Println("printblock HEIGHT - Display block number HEIGHT")
 				 	fmt.Println("Missing argument HEIGHT")
@@ -114,7 +116,7 @@ func (cli *CLI) Run() {
 					sendTo   := commands[2]
 					sendAmount,_ := strconv.Atoi(commands[3])
 					sendMine := true
-					cli.send(sendFrom, sendTo, sendAmount, nodeID, sendMine)
+					cli.send(sendFrom, sendTo, sendAmount, dbFile, sendMine)
 				 } else {
 				 	fmt.Println("send FROM TO AMOUNT - Send AMOUNT of coins from FROM address to TO.")
 				 	fmt.Println("Missing arguments")
@@ -123,7 +125,7 @@ func (cli *CLI) Run() {
 			case "createblockchain":
 				if len(commands) > 1 {
 					address := commands[1]
-					cli.createBlockchain(address, nodeID)
+					cli.createBlockchain(address, dbFile)
 				 } else {
 				 	fmt.Println("createblockchain ADDRESS - Create a blockchain and send genesis block reward to ADDRESS")
 				 	fmt.Println("Missing argument ADDRESS")
@@ -131,7 +133,7 @@ func (cli *CLI) Run() {
 			case "startnode":
 				if len(commands) > 1 {
 					address := commands[1]
-					cli.startNode(nodeID, address)
+					cli.startNode(nodeID, dbFile, address)
 				 } else {
 				 	fmt.Println("startnode ADDRESS - ")
 				 	fmt.Println("Missing argument ADDRESS")
@@ -148,8 +150,8 @@ func (cli *CLI) Run() {
 					}
 				}
 				for i := 0; i < n; i++ {
-					block := cli.mineblock(nodeID)
-					bc := NewBlockchain(nodeID)
+					block := cli.mineblock(dbFile)
+					bc := NewBlockchain(dbFile)
 					bc.AddBlock(block)
 					bc.db.Close()
 				}
@@ -161,8 +163,8 @@ func (cli *CLI) Run() {
 						fmt.Println("Invalid arguments.")
 						fmt.Println("  mineblockprob NODES DENSITY- Mine 1 block with empty transactions and NODES nodes and DENSITY density")
 					} else {
-						block :=  cli.mineblockWithNewProblem(nodeID, nodes, density)
-						bc := NewBlockchain(nodeID)
+						block :=  cli.mineblockWithNewProblem(dbFile, nodes, density)
+						bc := NewBlockchain(dbFile)
 						bc.AddBlock(block)
 						bc.db.Close()
 					}
@@ -173,8 +175,8 @@ func (cli *CLI) Run() {
 			case "mineblocksol":
 				if len(commands) > 1 {
 					pgHash := commands[1]
-					block := cli.mineblockWithSolution(nodeID, pgHash)
-					bc := NewBlockchain(nodeID)
+					block := cli.mineblockWithSolution(dbFile, pgHash)
+					bc := NewBlockchain(dbFile)
 					bc.AddBlock(block)
 					bc.db.Close()
 				 } else {
@@ -184,8 +186,8 @@ func (cli *CLI) Run() {
 			case "minepar":
 				if len(commands) > 1 {
 					pgHash := commands[1]
-					block := cli.mineblockParallel(nodeID, pgHash)
-					bc := NewBlockchain(nodeID)
+					block := cli.mineblockParallel(dbFile, pgHash)
+					bc := NewBlockchain(dbFile)
 					bc.AddBlock(block)
 					bc.db.Close()
 				 } else {

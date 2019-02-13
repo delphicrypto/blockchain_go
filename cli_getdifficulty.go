@@ -4,8 +4,8 @@ import (
 	"fmt"
 )
 
-func (cli *CLI) getDifficulty(nodeID string) {
-	bc := NewBlockchain(nodeID)
+func (cli *CLI) getDifficulty(dbFile string) {
+	bc := NewBlockchain(dbFile)
 	defer bc.db.Close()
 	target := bc.CurrentTarget(false)
 	diff := targetToDifficulty(target)

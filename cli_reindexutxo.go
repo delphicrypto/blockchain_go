@@ -2,8 +2,8 @@ package crickchain
 
 import "fmt"
 
-func (cli *CLI) reindexUTXO(nodeID string) {
-	bc := NewBlockchain(nodeID)
+func (cli *CLI) reindexUTXO(dbFile string) {
+	bc := NewBlockchain(dbFile)
 	defer bc.db.Close()
 	
 	UTXOSet := UTXOSet{bc}

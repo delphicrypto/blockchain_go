@@ -1,8 +1,8 @@
 package crickchain
 
 
-func (cli *CLI) printChain(nodeID string) {
-	bc := NewBlockchain(nodeID)
+func (cli *CLI) printChain(dbFile string) {
+	bc := NewBlockchain(dbFile)
 	defer bc.db.Close()
 
 	bci := bc.Iterator()
