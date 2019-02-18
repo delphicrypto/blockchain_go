@@ -28,8 +28,8 @@ func (cli *CLI) send(from, to string, amount int, dbFile string, walletFile stri
 	if mineNow {
 		cbTx := NewCoinbaseTX(from, "")
 		txs := []*Transaction{cbTx, tx}
-		fmt.Println("Mining now")
 		newBlock := bc.MineBlock(txs, []byte{}, []int{}, []byte{})
+		bc.AddBlock(newBlock)
 		UTXOSet.Update(newBlock)
 	} else {
 		sendTx(knownNodes[0], tx)

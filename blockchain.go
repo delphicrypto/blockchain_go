@@ -578,7 +578,6 @@ func (bc *Blockchain) GetVerifiedTransactions(transactions []*Transaction) []*Tr
 	for i := len(transactions) - 1; i >= 0; i-- {
 	    tx := transactions[i]
 	    if bc.VerifyTransaction(tx) != true {
-	    	log.Panic("ERROR: Invalid transaction\n")
 			fmt.Println("ERROR: Invalid transaction\n", tx)
 			transactions = append(transactions[:i],
 	                transactions[i+1:]...)
@@ -613,15 +612,9 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction, solHash []byte, sol
 	if err != nil {
 		log.Panic(err)
 	}
-	// for _, tx := range transactions {
-	// 	// TODO: ignore transaction if it's not valid
-	// 	if bc.VerifyTransaction(tx) != true {
-	// 		fmt.Println("ERROR: Invalid transaction\n", tx)
-
-	// 	}
-	// }
 
 	verifiedTxs := bc.GetVerifiedTransactions(transactions)
+	//fmt.Println(verifiedTxs)
 	target := bc.GetBlockTarget(lastHeight, solHash, solution, pgHash)	
 
 	newBlock := NewBlock(verifiedTxs, lastHash, lastHeight+1, target, solHash, solution, pgHash)
