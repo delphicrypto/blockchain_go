@@ -68,18 +68,61 @@ func (cli *CLI) mineblockWithSolution(dbFile string, pgHash string) *Block {
 	return newBlock
 }
 
-func (cli *CLI) mineblockParallel(dbFile string, pgHash string) *Block {
-	blockChannel := make(chan *Block, 1)
-	
-	go func() {
-        blockChannel <- cli.mineblock(dbFile)
-    }()
-    go func() {
-        blockChannel <- cli.mineblockWithSolution(dbFile, pgHash)
-    }()
-    select {
-	    case block := <-blockChannel:
-			//close(blockChannel)
-			return block
+func (cli *CLI) mineblockParallel(dbFile string) *Block {
+	bc := NewBlockchain(dbFile)
+	defer bc.db.Close()
+	var txs []*Transaction
+	height := bc.GetBestHeight()
+	hashes := bc.GetProblemGraphHashes()
+	if !(len(hashes) > 0) {
+		log.Panic("No Problem to mine solution for. Create one first")
 	}
+	var bestPG *ProblemGraph
+	var bestSol []int
+	bestRatio := 100.00
+	var solHash []byte
+	for _, h := range hashes {
+		pg, err := bc.GetProblemGraphFromHash(h)
+		if err != nil {
+			log.Panic(err)
+		}
+		//evaluate expected difficulty for solution
+		sol := bc.GetBestSolution(&pg, height)
+		expected := float64(pg.Graph.Order() -1) * pg.Graph.Density()
+		ratio := float64(len(sol))/expected
+		fmt.Println(ratio)
+		if ratio < bestRatio {
+			bestRatio = ratio
+			bestPG = &pg
+			solHash = pg.Hash
+			bestSol = sol
+		}
+		
+	}
+
+	//blockChannel := make(chan *Block, 1)
+	// go func() {
+	// 	newBlock := bc.MineBlock(txs, []byte{}, []int{}, []byte{})
+	// 	fmt.Println("Block mined classically")
+ //        blockChannel <- newBlock
+ //    }()
+ //    go func() {
+ //    	kclique := bestPG.FindKClique(len(bestSol) + 1)
+	// 	newBlock := bc.MineBlock(txs, solHash, kclique, []byte{})
+	// 	fmt.Println("Block mined with solution")
+		
+ //        blockChannel <- newBlock
+ //    }()
+ //    select {
+	//     case block := <-blockChannel:
+	// 		//close(blockChannel)
+	// 		fmt.Printf("New block hash: %x\r\n", block.Hash)
+
+	// 		return block
+	// }
+
+	kclique := bestPG.FindKClique(len(bestSol) + 1)
+	newBlock := bc.MineBlock(txs, solHash, kclique, []byte{})
+	fmt.Printf("Block mined with solution to %x\n", solHash)
+	return newBlock
 }

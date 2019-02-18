@@ -11,8 +11,8 @@ func (cli *CLI) getDifficulty(dbFile string) {
 	diff := targetToDifficulty(target)
 	rTarget := bc.CurrentTarget(true)
 	rDiff := targetToDifficulty(rTarget)
-	fmt.Printf("Normal  Target: %078d\r\n", target)
-	fmt.Printf("Reduced Target: %078d\r\n", rTarget)
+	fmt.Printf("Normal  Target: %064x\r\n", target)
+	fmt.Printf("Reduced Target: %064x\r\n", rTarget)
 	fmt.Printf("Normal  Difficulty: %d\r\n", diff)	
 	fmt.Printf("Reduced Difficulty: %d\r\n", rDiff)
 }

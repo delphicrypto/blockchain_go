@@ -58,7 +58,7 @@ func (ws *Wallets) LoadFromFile(walletFile string) error {
 	if _, err := os.Stat(walletFile); os.IsNotExist(err) {
 		return err
 	}
-
+	fmt.Println("Wallet file ", walletFile)
 	fileContent, err := ioutil.ReadFile(walletFile)
 	if err != nil {
 		log.Panic(err)

@@ -116,7 +116,7 @@ func (cli *CLI) Run() {
 					sendTo   := commands[2]
 					sendAmount,_ := strconv.Atoi(commands[3])
 					sendMine := true
-					cli.send(sendFrom, sendTo, sendAmount, dbFile, sendMine)
+					cli.send(sendFrom, sendTo, sendAmount, dbFile, walletFile, sendMine)
 				 } else {
 				 	fmt.Println("send FROM TO AMOUNT - Send AMOUNT of coins from FROM address to TO.")
 				 	fmt.Println("Missing arguments")
@@ -184,16 +184,33 @@ func (cli *CLI) Run() {
 				 	fmt.Println("Missing argument HASH")
 				 }
 			case "minepar":
-				if len(commands) > 1 {
-					pgHash := commands[1]
-					block := cli.mineblockParallel(dbFile, pgHash)
+				n := 1
+				if len(commands) == 2 {
+					m, err := strconv.Atoi(commands[1])
+					if err != nil {
+						fmt.Println("Invalid N argument.")
+						fmt.Println("  minepar N- Mine N blocks with empty transactions. Default is 1. It tries to mine both with and without a solution (in parallel).")
+					} else {
+						n = m
+					}
+				}
+				for i := 0; i < n; i++ {
+					block := cli.mineblockParallel(dbFile)
 					bc := NewBlockchain(dbFile)
 					bc.AddBlock(block)
 					bc.db.Close()
-				 } else {
-				 	fmt.Println("mineblocksol HASH -  Mine 1 block with empty transactions and a solution to problem HASH")
-				 	fmt.Println("Missing argument HASH")
-				 }
+				}
+
+				// if len(commands) > 1 {
+				// 	pgHash := commands[1]
+				// 	block := cli.mineblockParallel(dbFile, pgHash)
+				// 	bc := NewBlockchain(dbFile)
+				// 	bc.AddBlock(block)
+				// 	bc.db.Close()
+				//  } else {
+				//  	fmt.Println("mineblocksol HASH -  Mine 1 block with empty transactions and a solution to problem HASH")
+				//  	fmt.Println("Missing argument HASH")
+				//  }
 				
 			default:
 				fmt.Println("Invalid option.")

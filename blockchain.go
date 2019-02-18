@@ -559,19 +559,45 @@ func (bc *Blockchain) CurrentTarget(reduced bool) *big.Int {
 	return bc.CalculateTarget(height, reduced)
 }
 
+//GetBlockTarget returns the target for a block
+func (bc *Blockchain) GetBlockTarget(height int, solHash []byte, solution []int, pgHash []byte) *big.Int {
+	//if solution is valid, use reduced difficulty
+	if len(solHash) > 0 && !Equal(pgHash, solHash) {
+		pg, err := bc.GetProblemGraphFromHash(solHash)
+		if err == nil {
+			bestSol := bc.GetBestSolution(&pg, height)
+			if (len(solution) > len(bestSol)) && pg.ValidateClique(solution) {
+				return bc.CalculateTarget(height+1, true)
+			}
+		}
+	}
+	return bc.CalculateTarget(height+1, false)
+}
+
+func (bc *Blockchain) GetVerifiedTransactions(transactions []*Transaction) []*Transaction {
+	for i := len(transactions) - 1; i >= 0; i-- {
+	    tx := transactions[i]
+	    if bc.VerifyTransaction(tx) != true {
+	    	log.Panic("ERROR: Invalid transaction\n")
+			fmt.Println("ERROR: Invalid transaction\n", tx)
+			transactions = append(transactions[:i],
+	                transactions[i+1:]...)
+		}
+	}
+
+	return transactions
+}
+
 
 // MineBlock mines a new block with the provided transactions
 func (bc *Blockchain) MineBlock(transactions []*Transaction, solHash []byte, solution []int,  pgHash []byte) *Block {
+	// bci := bc.Iterator()
+	// lastBlock := bci.Next()
+	// lastHash := lastBlock.Hash
+	// lastHeight := lastBlock.Height
 	var lastHash []byte
 	var lastHeight int
-	var target * big.Int
 
-	for _, tx := range transactions {
-		// TODO: ignore transaction if it's not valid
-		if bc.VerifyTransaction(tx) != true {
-			log.Panic("ERROR: Invalid transaction")
-		}
-	}
 	err := bc.db.View(func(tx *bolt.Tx) error {
 		b := tx.Bucket([]byte(blocksBucket))
 		lastHash = b.Get([]byte("l"))
@@ -587,20 +613,18 @@ func (bc *Blockchain) MineBlock(transactions []*Transaction, solHash []byte, sol
 	if err != nil {
 		log.Panic(err)
 	}
+	// for _, tx := range transactions {
+	// 	// TODO: ignore transaction if it's not valid
+	// 	if bc.VerifyTransaction(tx) != true {
+	// 		fmt.Println("ERROR: Invalid transaction\n", tx)
 
-	target = bc.CalculateTarget(lastHeight+1, false)
-	//if solution is valid, use reduced difficulty
-	if len(solHash) > 0 && !Equal(pgHash, solHash) {
-		pg, err := bc.GetProblemGraphFromHash(solHash)
-		if err == nil {
-			bestSol := bc.GetBestSolution(&pg, lastHeight)
-			if (len(solution) > len(bestSol)) && pg.ValidateClique(solution) {
-				target = bc.CalculateTarget(lastHeight+1, true)
-			}
-		}
-	}
-	
-	newBlock := NewBlock(transactions, lastHash, lastHeight+1, target, solHash, solution, pgHash)
+	// 	}
+	// }
+
+	verifiedTxs := bc.GetVerifiedTransactions(transactions)
+	target := bc.GetBlockTarget(lastHeight, solHash, solution, pgHash)	
+
+	newBlock := NewBlock(verifiedTxs, lastHash, lastHeight+1, target, solHash, solution, pgHash)
 
 	return newBlock
 }

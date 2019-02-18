@@ -112,9 +112,9 @@ func (b *Block) Validate(bc *Blockchain) bool {
 func (b *Block) NicePrint(bc *Blockchain) {
 	fmt.Printf("\n")
 	printGreen(fmt.Sprintf("============ Block %d ============\n", b.Height))
-	printBlue(fmt.Sprintf("Hash: %x\n", b.Hash))
-	fmt.Printf("Prev: %x\n", b.PrevBlockHash)
-	fmt.Printf("Target: %078d\n", b.Target)
+	printBlue(fmt.Sprintf("Hash:   %064x\n", b.Hash))
+	fmt.Printf("Prev:   %064x\n", b.PrevBlockHash)
+	fmt.Printf("Target: %064x\n", b.Target)
 	fmt.Printf("Difficulty: %d\n", targetToDifficulty(b.Target))
 	prevBlock, _ := bc.GetBlockFromHash(b.PrevBlockHash)
 	time := (b.Timestamp - prevBlock.Timestamp) / 1e9
